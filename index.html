@@ -1,10 +1,11 @@
 cd /home/claude/sim && python3 - <<'EOF'
-p=open('part3_orbit.js',encoding='utf-8').read()
-a="  const tgt = state.tab === 'orbit' && state.sel !== 'ALL' && cam.follow ? sats[selKey()].pos.clone().multiplyScalar(0.0) : c.t;\n"
-assert a in p
-p=p.replace(a,"  const tgt = c.t;\n")
-open('part3_orbit.js','w',encoding='utf-8').write(p)
+p = open('part3_orbit.js', encoding='utf-8').read()
+a = "  const tgt = state.tab === 'orbit' && state.sel !== 'ALL' && cam.follow ? sats[selKey()].pos.clone().multiplyScalar(0.0) : c.t;\n"
+if a in p:
+    p = p.replace(a, "  const tgt = c.t;\n")
+    open('part3_orbit.js', 'w', encoding='utf-8').write(p)
 EOF
+
 cat > part4_launch.js <<'EOF'
 
 // =====================================================================
@@ -46,111 +47,209 @@ function makePlan(target) {
   const kepler = (t) => { const M = nn * (t - P.tT0); let E = M; for (let i = 0; i < 12; i++) E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E)); return E; };
   const nu = (t) => { const E = kepler(t); return 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2), Math.sqrt(1 - e) * Math.cos(E / 2)); };
   const phi3 = phi2, phi4 = phi3 + Math.PI, avg3 = (va + o.v) / 2 / ra;
+
   P.stateAt = (t) => {
     let rKm, phi, v, thr = 0, stage = 0, label, prop = 100;
-    const asc = Math.min(t, tS);
-    if (t < 0) { rKm = RE; phi = 0; v = 0; thr = t > -3 ? sstep(-3, 0, t) * 0.9 : 0; label = t > -3 ? 'اشتعال المحركات' : 'العد التنازلي'; prop = 100; }
-    else if (t <= tS) {
+    if (t < 0) {
+      rKm = RE; phi = 0; v = 0;
+      thr = t > -3 ? sstep(-3, 0, t) * 0.9 : 0;
+      label = t > -3 ? 'اشتعال المحركات' : 'العد التنازلي';
+      prop = 100;
+    } else if (t <= tS) {
       rKm = RE + fH(t); phi = fD(t) / RE; v = fV(t);
-      if (t < 155) { stage = 0; label = 'المرحلة الأولى'; prop = 100 * (1 - t / 155 * 0.97); thr = t < 62 ? 1 : t < 82 ? lerp(1, 0.72, sstep(62, 68, t)) * (t > 76 ? lerp(1, 1.0, 0) + (sstep(76, 82, t) * (1 - 0.72) * 1) / 1 * 0 : 1) : 1; if (t >= 62 && t < 82) thr = 1 - 0.28 * (sstep(62, 68, t) - sstep(76, 82, t)); if (t >= 82) thr = 1; }
-      else if (t < 164) { stage = 1; label = t < 159 ? 'فصل المرحلة الأولى' : 'فصل المراحل'; thr = t < 159 ? 0 : 0; prop = 3; }
-      else { stage = 2; label = 'المرحلة الثانية'; thr = sstep(164, 167, t); prop = lerp(100, isLeo ? 6 : 52, (t - 164) / (tS - 164)); }
-      if (t >= tS - 1 && t <= tS) thr = 0;
+      if (t < 155) {
+        stage = 0;
+        label = 'المرحلة الأولى';
+        prop = 100 * (1 - t / 155 * 0.97);
+        const maxQDip = 0.28 * (sstep(62, 68, t) - sstep(76, 82, t));
+        thr = 1 - maxQDip;
+      } else if (t < 164) {
+        stage = 1;
+        label = t < 159 ? 'فصل المرحلة الأولى' : 'فصل المراحل';
+        thr = 0;
+        prop = 3;
+      } else {
+        stage = 2;
+        label = 'المرحلة الثانية';
+        thr = t >= tS - 1 ? 0 : sstep(164, 167, t);
+        prop = lerp(100, isLeo ? 6 : 52, (t - 164) / (tS - 164));
+      }
     } else if (isLeo) {
-      rKm = o.rKm; phi = fD(tS) / RE + (o.v / o.rKm) * (t - tS); v = o.v; stage = 3; label = t < P.tDep ? 'انجراف قبل النشر' : 'تم النشر'; prop = 6;
-    } else if (t < P.tB2s) { rKm = rp; phi = phi1 + npark * (t - tS); v = vpark; stage = 3; label = 'مدار انتظار 200 كم'; prop = 52; }
-    else if (t < P.tB2e) { const u = (t - P.tB2s) / (P.tB2e - P.tB2s); rKm = rp; phi = phi620 + avg2 * (t - P.tB2s); v = lerp(vpark, vp, u); stage = 4; label = 'إشعال رفع الأوج'; thr = sstep(0, 0.06, u) * (1 - sstep(0.94, 1, u)); prop = lerp(52, 30, u); }
-    else if (t < P.tT1) { const E = kepler(t), r = a * (1 - e * Math.cos(E)); rKm = r; phi = phi3 + nu(t); v = Math.sqrt(MU * (2 / r - 1 / a)); stage = 5; label = 'مدار الانتقال (انجراف)'; prop = 30; }
-    else if (t < P.tB3e) { const u = (t - P.tB3s) / (P.tB3e - P.tB3s); rKm = ra; phi = phi4 + avg3 * (t - P.tB3s); v = lerp(va, o.v, u); stage = 6; label = 'تدوير المدار عند الأوج'; thr = sstep(0, 0.06, u) * (1 - sstep(0.94, 1, u)); prop = lerp(30, 8, u); }
-    else { rKm = ra; phi = phi4 + avg3 * (P.tB3e - P.tB3s) + (o.v / ra) * (t - P.tB3e); v = o.v; stage = t < P.tDep ? 3 : 7; label = t < P.tDep ? 'انجراف قبل النشر' : 'تم النشر'; prop = 8; }
+      rKm = o.rKm; phi = fD(tS) / RE + (o.v / o.rKm) * (t - tS); v = o.v; stage = 3;
+      label = t < P.tDep ? 'انجراف قبل النشر' : 'تم النشر'; prop = 6;
+    } else if (t < P.tB2s) {
+      rKm = rp; phi = phi1 + npark * (t - tS); v = vpark; stage = 3; label = 'مدار انتظار 200 كم'; prop = 52;
+    } else if (t < P.tB2e) {
+      const u = (t - P.tB2s) / (P.tB2e - P.tB2s);
+      rKm = rp; phi = phi620 + avg2 * (t - P.tB2s); v = lerp(vpark, vp, u); stage = 4;
+      label = 'إشعال رفع الأوج'; thr = sstep(0, 0.06, u) * (1 - sstep(0.94, 1, u)); prop = lerp(52, 30, u);
+    } else if (t < P.tT1) {
+      const E = kepler(t), r = a * (1 - e * Math.cos(E));
+      rKm = r; phi = phi3 + nu(t); v = Math.sqrt(MU * (2 / r - 1 / a)); stage = 5;
+      label = 'مدار الانتقال (انجراف)'; prop = 30;
+    } else if (t < P.tB3e) {
+      const u = (t - P.tB3s) / (P.tB3e - P.tB3s);
+      rKm = ra; phi = phi4 + avg3 * (t - P.tB3s); v = lerp(va, o.v, u); stage = 6;
+      label = 'تدوير المدار عند الأوج'; thr = sstep(0, 0.06, u) * (1 - sstep(0.94, 1, u)); prop = lerp(30, 8, u);
+    } else {
+      rKm = ra; phi = phi4 + avg3 * (P.tB3e - P.tB3s) + (o.v / ra) * (t - P.tB3e); v = o.v;
+      stage = t < P.tDep ? 3 : 7; label = t < P.tDep ? 'انجراف قبل النشر' : 'تم النشر'; prop = 8;
+    }
     return { rKm, phi, v, thr, stage, label, prop, h: rKm - RE };
   };
-  const ev = [[-10, 'بدء العد التنازلي'], [-3, 'اشتعال المحركات'], [0, 'الإقلاع'], [28, 'تجاوز سرعة الصوت (Mach 1)'], [70, 'أقصى ضغط ديناميكي (Max-Q)'], [155, 'انطفاء المرحلة الأولى (MECO)'], [159, 'فصل المرحلة الأولى'], [164, 'اشتعال المرحلة الثانية'], [200, 'فصل الغطاء الواقي']];
+
+  const ev = [
+    [-10, 'بدء العد التنازلي'], [-3, 'اشتعال المحركات'], [0, 'الإقلاع'],
+    [28, 'تجاوز سرعة الصوت (Mach 1)'], [70, 'أقصى ضغط ديناميكي (Max-Q)'],
+    [155, 'انطفاء المرحلة الأولى (MECO)'], [159, 'فصل المرحلة الأولى'],
+    [164, 'اشتعال المرحلة الثانية'], [200, 'فصل الغطاء الواقي']
+  ];
   if (isLeo) ev.push([560, 'نهاية الاحتراق: مدار LEO'], [600, 'نشر الكيوب سات']);
-  else ev.push([520, 'نهاية الاحتراق الأول: مدار انتظار 200 كم'], [P.tB2s, 'إشعال رفع الأوج'], [P.tT0, 'بدء مدار الانتقال (تسريع تلقائي)'], [P.tB3s, 'إشعال التدوير عند الأوج'], [P.tDep, 'نشر الكيوب سات في ' + target]);
+  else ev.push(
+    [520, 'نهاية الاحتراق الأول: مدار انتظار 200 كم'],
+    [P.tB2s, 'إشعال رفع الأوج'],
+    [P.tT0, 'بدء مدار الانتقال (تسريع تلقائي)'],
+    [P.tB3s, 'إشعال التدوير عند الأوج'],
+    [P.tDep, 'نشر الكيوب سات في ' + target]
+  );
   P.events = ev.map(([t, n]) => ({ t, n }));
   return P;
 }
 
-const L = { target: 'LEO', warpUI: 2, camMode: 'auto', phase: 'idle', t: -10, plan: null, done: false, warpEff: 1, u0: null, e0: null, nrm: null, padAnchor: null, evIdx: -1,
-  debris: [], deployed: null, smokeT: 0, lookT: V3(0, 0, 0), vPrev: 0, gLoad: 1 };
+const L = {
+  target: 'LEO', warpUI: 2, camMode: 'auto', phase: 'idle', t: -10, plan: null, done: false,
+  warpEff: 1, u0: null, e0: null, nrm: null, padAnchor: null, evIdx: -1,
+  debris: [], deployed: null, smokeT: 0, lookT: V3(0, 0, 0), vPrev: 0, gLoad: 1
+};
 
-// ---- pad on Earth ----
 const PADLL = { lat: 28.5, lon: -80.6 };
 const padLocal = llv(PADLL.lat, PADLL.lon, ER);
-const padGroup = new THREE.Group(); padGroup.position.copy(padLocal); padGroup.quaternion.setFromUnitVectors(V3(0, 1, 0), padLocal.clone().normalize()); earthSpin.add(padGroup);
+const padGroup = new THREE.Group();
+padGroup.position.copy(padLocal);
+padGroup.quaternion.setFromUnitVectors(V3(0, 1, 0), padLocal.clone().normalize());
+earthSpin.add(padGroup);
+
 (function buildPad() {
   const gc = document.createElement('canvas'); gc.width = gc.height = 128; const x = gc.getContext('2d');
-  const gr = x.createRadialGradient(64, 64, 10, 64, 64, 64); gr.addColorStop(0, '#fff'); gr.addColorStop(0.7, '#fff'); gr.addColorStop(1, '#000'); x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
-  const ground = new THREE.Mesh(new THREE.CircleGeometry(0.55, 48), new THREE.MeshStandardMaterial({ color: 0x2b3a2a, roughness: 1, metalness: 0, transparent: true, alphaMap: new THREE.CanvasTexture(gc) }));
-  ground.rotation.x = -Math.PI / 2; ground.position.y = 0.0005; padGroup.add(ground); padGroup.userData.ground = ground;
-  const conc = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.9 }), steel = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.6, metalness: 0.4 });
+  const gr = x.createRadialGradient(64, 64, 10, 64, 64, 64);
+  gr.addColorStop(0, '#fff'); gr.addColorStop(0.7, '#fff'); gr.addColorStop(1, '#000');
+  x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(0.55, 48),
+    new THREE.MeshStandardMaterial({ color: 0x2b3a2a, roughness: 1, metalness: 0, transparent: true, alphaMap: new THREE.CanvasTexture(gc) })
+  );
+  ground.rotation.x = -Math.PI / 2; ground.position.y = 0.0005;
+  padGroup.add(ground); padGroup.userData.ground = ground;
+
+  const conc = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.9 });
+  const steel = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.6, metalness: 0.4 });
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.075, 0.005, 40), conc); pad.position.y = 0.0025; padGroup.add(pad);
   const trench = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.004, 0.16), new THREE.MeshStandardMaterial({ color: 0x1f2937 })); trench.position.set(0, 0.0052, 0.06); padGroup.add(trench);
   const tw = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.115, 0.008), steel); tw.position.set(0.055, 0.0625, 0); padGroup.add(tw);
-  for (let i = 0; i < 5; i++) { const arm = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.003, 0.003), steel); arm.position.set(0.032, 0.02 + i * 0.02, 0); padGroup.add(arm); }
-  [[-0.13, -0.13], [0.13, -0.13], [-0.13, 0.13], [0.13, 0.13]].forEach(([px, pz]) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.0012, 0.0012, 0.15, 6), conc); m.position.set(px, 0.075, pz); padGroup.add(m); });
-  [[-0.22, 0.16], [-0.26, 0.2]].forEach(([px, pz]) => { const t = new THREE.Mesh(new THREE.SphereGeometry(0.014, 16, 12), new THREE.MeshStandardMaterial({ color: 0xe5e7eb, roughness: 0.4 })); t.position.set(px, 0.014, pz); padGroup.add(t); });
+  for (let i = 0; i < 5; i++) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.003, 0.003), steel);
+    arm.position.set(0.032, 0.02 + i * 0.02, 0); padGroup.add(arm);
+  }
+  [[-0.13, -0.13], [0.13, -0.13], [-0.13, 0.13], [0.13, 0.13]].forEach(([px, pz]) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.0012, 0.0012, 0.15, 6), conc);
+    m.position.set(px, 0.075, pz); padGroup.add(m);
+  });
+  [[-0.22, 0.16], [-0.26, 0.2]].forEach(([px, pz]) => {
+    const t = new THREE.Mesh(new THREE.SphereGeometry(0.014, 16, 12), new THREE.MeshStandardMaterial({ color: 0xe5e7eb, roughness: 0.4 }));
+    t.position.set(px, 0.014, pz); padGroup.add(t);
+  });
   const hut = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.012, 0.03), conc); hut.position.set(-0.2, 0.006, -0.1); padGroup.add(hut);
 })();
 
-// ---- rocket ----
 function buildRocket() {
   const root = new THREE.Group();
-  const white = new THREE.MeshStandardMaterial({ color: 0xeef2f7, roughness: 0.45, metalness: 0.2 }), dark = new THREE.MeshStandardMaterial({ color: 0x1b2430, roughness: 0.6, metalness: 0.4 });
+  const white = new THREE.MeshStandardMaterial({ color: 0xeef2f7, roughness: 0.45, metalness: 0.2 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1b2430, roughness: 0.6, metalness: 0.4 });
   const R = 0.0045;
-  const stage1 = new THREE.Group(), cy = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.040, 24), white); cy.position.y = 0.020; stage1.add(cy);
+  const stage1 = new THREE.Group();
+  const cy = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.040, 24), white); cy.position.y = 0.020; stage1.add(cy);
   const band = new THREE.Mesh(new THREE.CylinderGeometry(R * 1.01, R * 1.01, 0.006, 24), dark); band.position.y = 0.011; stage1.add(band);
-  [[0, 0], [0.0025, 0.0015], [-0.0025, 0.0015]].forEach(([x, z]) => { const n = new THREE.Mesh(new THREE.ConeGeometry(0.0013, 0.003, 10, 1, true), dark); n.position.set(x, -0.0012, z); n.rotation.x = Math.PI; stage1.add(n); });
+  [[0, 0], [0.0025, 0.0015], [-0.0025, 0.0015]].forEach(([x, z]) => {
+    const n = new THREE.Mesh(new THREE.ConeGeometry(0.0013, 0.003, 10, 1, true), dark);
+    n.position.set(x, -0.0012, z); n.rotation.x = Math.PI; stage1.add(n);
+  });
   const inter = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.003, 24), dark); inter.position.y = 0.0415; root.add(inter);
-  const stage2 = new THREE.Group(), cy2 = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.018, 24), white); cy2.position.y = 0.0525; stage2.add(cy2);
+  const stage2 = new THREE.Group();
+  const cy2 = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.018, 24), white); cy2.position.y = 0.0525; stage2.add(cy2);
   const nz2 = new THREE.Mesh(new THREE.ConeGeometry(0.0016, 0.003, 10, 1, true), dark); nz2.position.y = 0.0432; nz2.rotation.x = Math.PI; stage2.add(nz2);
-  const payload = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.004), new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.3 })); payload.position.y = 0.0685; stage2.add(payload);
+  const payload = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.004), new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.3 }));
+  payload.position.y = 0.0685; stage2.add(payload);
+
   const fa = new THREE.Group(), fb = new THREE.Group();
   [[fa, 0], [fb, Math.PI]].forEach(([g, th]) => {
-    const c = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.008, 20, 1, false, th, Math.PI), new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4, side: THREE.DoubleSide })); c.position.y = 0.066;
-    const n = new THREE.Mesh(new THREE.ConeGeometry(R, 0.012, 20, 1, false, th, Math.PI), new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4, side: THREE.DoubleSide })); n.position.y = 0.076; g.add(c, n);
+    const c = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.008, 20, 1, false, th, Math.PI), new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4, side: THREE.DoubleSide }));
+    c.position.y = 0.066;
+    const n = new THREE.Mesh(new THREE.ConeGeometry(R, 0.012, 20, 1, false, th, Math.PI), new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4, side: THREE.DoubleSide }));
+    n.position.y = 0.076; g.add(c, n);
   });
   root.add(stage1, stage2, fa, fb);
+
   const flame = new THREE.Group(); root.add(flame);
   const fo = new THREE.Mesh(new THREE.ConeGeometry(0.0042, 0.05, 14, 1, true), new THREE.MeshBasicMaterial({ color: 0xff8a1f, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
   const fi = new THREE.Mesh(new THREE.ConeGeometry(0.0022, 0.032, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff1c2, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
   fo.rotation.x = Math.PI; fo.position.y = -0.025; fi.rotation.x = Math.PI; fi.position.y = -0.016; flame.add(fo, fi);
+
   const light = new THREE.PointLight(0xffa850, 0, 0.7); light.position.y = -0.01; root.add(light);
   root.visible = true; launchGroup.add(root);
   return { root, stage1, stage2, fa, fb, inter, flame, fo, fi, light, payload };
 }
 let rocket = buildRocket();
+
 function resetRocketParts() {
-  launchGroup.remove(rocket.root); L.debris.forEach((d) => scene.remove(d.obj)); L.debris.length = 0;
+  launchGroup.remove(rocket.root);
+  L.debris.forEach((d) => scene.remove(d.obj)); L.debris.length = 0;
   if (L.deployed) { scene.remove(L.deployed); L.deployed = null; }
   rocket = buildRocket();
 }
 
-// ---- soft sprites (smoke / marker / trail) ----
 function softTex(col) {
-  const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 2, 32, 32, 32);
-  g.addColorStop(0, col + 'ff'); g.addColorStop(0.5, col + '66'); g.addColorStop(1, col + '00'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+  const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+  const g = x.createRadialGradient(32, 32, 2, 32, 32, 32);
+  g.addColorStop(0, col + 'ff'); g.addColorStop(0.5, col + '66'); g.addColorStop(1, col + '00');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
 }
 const smokeTex = softTex('#d8dde4');
-const smoke = []; for (let i = 0; i < 46; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: smokeTex, transparent: true, opacity: 0, depthWrite: false })); sp.visible = false; launchGroup.add(sp); smoke.push({ sp, life: 0, max: 1, v: V3(0, 0, 0), s0: 0.02 }); }
-const markerGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex('#ffb347'), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); launchGroup.add(markerGlow);
-const TRAIL_N = 900, trailPos = new Float32Array(TRAIL_N * 3); let trailCount = 0;
-const trailGeo = new THREE.BufferGeometry(); trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3)); trailGeo.setDrawRange(0, 0);
-const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xffc766, transparent: true, opacity: 0.85 })); trail.frustumCulled = false; launchGroup.add(trail);
+const smoke = [];
+for (let i = 0; i < 46; i++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: smokeTex, transparent: true, opacity: 0, depthWrite: false }));
+  sp.visible = false; launchGroup.add(sp);
+  smoke.push({ sp, life: 0, max: 1, v: V3(0, 0, 0), s0: 0.02 });
+}
+const markerGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex('#ffb347'), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+launchGroup.add(markerGlow);
+
+const TRAIL_N = 900, trailPos = new Float32Array(TRAIL_N * 3);
+let trailCount = 0;
+const trailGeo = new THREE.BufferGeometry();
+trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+trailGeo.setDrawRange(0, 0);
+const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xffc766, transparent: true, opacity: 0.85 }));
+trail.frustumCulled = false; launchGroup.add(trail);
+
 function spawnSmoke(base, up, amt) {
   for (let i = 0; i < amt; i++) {
     const p = smoke.find((q) => q.life <= 0); if (!p) return;
     const ang = Math.random() * 6.283, out = V3(Math.cos(ang), 0, Math.sin(ang)).applyQuaternion(padWorldQuat());
     p.life = p.max = 4 + Math.random() * 3; p.s0 = 0.012 + Math.random() * 0.01;
-    p.sp.position.copy(base).addScaledVector(out, 0.01 + Math.random() * 0.02).addScaledVector(up, 0.003); p.v.copy(out).multiplyScalar(0.02 + Math.random() * 0.03).addScaledVector(up, 0.012 + Math.random() * 0.01); p.sp.visible = true;
+    p.sp.position.copy(base).addScaledVector(out, 0.01 + Math.random() * 0.02).addScaledVector(up, 0.003);
+    p.v.copy(out).multiplyScalar(0.02 + Math.random() * 0.03).addScaledVector(up, 0.012 + Math.random() * 0.01);
+    p.sp.visible = true;
   }
 }
 function padWorldQuat() { return padGroup.getWorldQuaternion(new THREE.Quaternion()); }
 function padWorldPos() { return padGroup.localToWorld(V3(0, 0, 0)); }
 
-// ---- UI ----
-function fmtT(t) { const s = t < 0 ? 'T-' : 'T+'; const a = Math.abs(Math.floor(t)); const h = Math.floor(a / 3600), m = Math.floor(a % 3600 / 60), ss = a % 60; return s + (h ? String(h).padStart(2, '0') + ':' : '') + String(m).padStart(2, '0') + ':' + String(ss).padStart(2, '0'); }
+function fmtT(t) {
+  const s = t < 0 ? 'T-' : 'T+';
+  const a = Math.abs(Math.floor(t));
+  const h = Math.floor(a / 3600), m = Math.floor(a % 3600 / 60), ss = a % 60;
+  return s + (h ? String(h).padStart(2, '0') + ':' : '') + String(m).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+}
 function renderPlanUI() {
   const P = L.plan, o = ORB[L.target];
   $('l-plan').textContent = L.target === 'LEO'
@@ -158,19 +257,42 @@ function renderPlanUI() {
     : 'صعود إلى مدار انتظار 200 كم، ثم رفع الأوج، ثم الانتقال لنحو ' + (P.TOF / 3600).toFixed(1) + ' ساعة (يُسرَّع تلقائياً)، ثم تدوير المدار عند ' + o.altKm.toLocaleString('en') + ' كم.';
   $('l-events').innerHTML = P.events.map((e, i) => '<li data-i="' + i + '"><b>' + fmtT(e.t) + '</b><span>' + e.n + '</span></li>').join('');
 }
-function planFor(target) { L.target = target; L.plan = makePlan(target); renderPlanUI(); document.querySelectorAll('.l-orbit').forEach((b) => b.classList.toggle('on', b.dataset.o === target)); }
+function planFor(target) {
+  L.target = target; L.plan = makePlan(target); renderPlanUI();
+  document.querySelectorAll('.l-orbit').forEach((b) => b.classList.toggle('on', b.dataset.o === target));
+}
 planFor('LEO');
-document.querySelectorAll('.l-orbit').forEach((b) => b.addEventListener('click', () => { if (L.phase !== 'idle') { toast('أعد الإطلاق أولاً لتغيير المدار'); return; } planFor(b.dataset.o); }));
-document.querySelectorAll('.l-warp').forEach((b) => b.addEventListener('click', () => { L.warpUI = +b.dataset.w; document.querySelectorAll('.l-warp').forEach((x) => x.classList.toggle('on', x === b)); }));
-document.querySelectorAll('.l-cam').forEach((b) => b.addEventListener('click', () => { L.camMode = b.dataset.c; document.querySelectorAll('.l-cam').forEach((x) => x.classList.toggle('on', x === b)); }));
-$('btn-start').addEventListener('click', () => { if (L.phase === 'idle') { L.phase = 'run'; L.t = -10; L.evIdx = -1; L.done = false; $('btn-start').textContent = 'جارٍ الإطلاق...'; $('btn-goorbit').hidden = true; toast('بدأ العد التنازلي'); } });
+document.querySelectorAll('.l-orbit').forEach((b) => b.addEventListener('click', () => {
+  if (L.phase !== 'idle') { toast('أعد الإطلاق أولاً لتغيير المدار'); return; }
+  planFor(b.dataset.o);
+}));
+document.querySelectorAll('.l-warp').forEach((b) => b.addEventListener('click', () => {
+  L.warpUI = +b.dataset.w;
+  document.querySelectorAll('.l-warp').forEach((x) => x.classList.toggle('on', x === b));
+}));
+document.querySelectorAll('.l-cam').forEach((b) => b.addEventListener('click', () => {
+  L.camMode = b.dataset.c;
+  document.querySelectorAll('.l-cam').forEach((x) => x.classList.toggle('on', x === b));
+}));
+$('btn-start').addEventListener('click', () => {
+  if (L.phase === 'idle') {
+    L.phase = 'run'; L.t = -10; L.evIdx = -1; L.done = false;
+    $('btn-start').textContent = 'جارٍ الإطلاق...'; $('btn-goorbit').hidden = true;
+    toast('بدأ العد التنازلي');
+  }
+});
 $('btn-reset').addEventListener('click', resetLaunch);
 $('btn-goorbit').addEventListener('click', () => { setTab('orbit'); setSel(L.target); });
+
 function resetLaunch() {
-  L.phase = 'idle'; L.t = -10; L.done = false; L.evIdx = -1; L.u0 = null; trailCount = 0; trailGeo.setDrawRange(0, 0);
-  resetRocketParts(); smoke.forEach((p) => { p.life = 0; p.sp.visible = false; });
-  $('btn-start').textContent = 'بدء العد التنازلي'; $('btn-goorbit').hidden = true; applyVisibility(); updateLaunchUI(L.plan.stateAt(-10), 0);
+  L.phase = 'idle'; L.t = -10; L.done = false; L.evIdx = -1; L.u0 = null;
+  trailCount = 0; trailGeo.setDrawRange(0, 0);
+  resetRocketParts();
+  smoke.forEach((p) => { p.life = 0; p.sp.visible = false; });
+  $('btn-start').textContent = 'بدء العد التنازلي'; $('btn-goorbit').hidden = true;
+  applyVisibility(); updateLaunchUI(L.plan.stateAt(-10), 0);
 }
+
 function updateLaunchUI(s, dvdt) {
   $('clock').textContent = fmtT(L.t);
   $('t-stage').textContent = s.label;
@@ -183,14 +305,19 @@ function updateLaunchUI(s, dvdt) {
   $('t-mach').textContent = s.h < 90 ? mach.toFixed(2) : '—';
   const rho = 1.225 * Math.exp(-s.h / 7.2), q = 0.5 * rho * Math.pow(s.v * 1000, 2) / 1000;
   $('t-q').textContent = q.toFixed(1) + ' kPa';
-  $('t-thr').textContent = Math.round(s.thr * 100) + '%'; $('t-prop').textContent = Math.round(s.prop) + '%'; $('t-propbar').style.width = s.prop + '%';
+  $('t-thr').textContent = Math.round(s.thr * 100) + '%';
+  $('t-prop').textContent = Math.round(s.prop) + '%';
+  $('t-propbar').style.width = s.prop + '%';
   $('t-warp').textContent = '×' + (L.warpEff >= 10 ? Math.round(L.warpEff) : +L.warpEff.toFixed(1));
-  const P = L.plan, pct = clamp((L.t + 10) / (P.tEnd + 10) * 100, 0, 100); $('tl-bar').style.width = pct + '%'; $('tl-pct').textContent = Math.round(pct) + '%'; $('tl-name').textContent = s.label;
-  const lis = $('l-events').children; for (let i = 0; i < lis.length; i++) { const done = L.t >= P.events[i].t; lis[i].className = done ? 'done' : ''; }
-  let cur = -1; P.events.forEach((e, i) => { if (L.t >= e.t) cur = i; }); if (cur >= 0 && lis[cur]) lis[cur].className = L.phase === 'run' && cur < lis.length - 1 ? 'done cur' : 'done';
+  const P = L.plan, pct = clamp((L.t + 10) / (P.tEnd + 10) * 100, 0, 100);
+  $('tl-bar').style.width = pct + '%'; $('tl-pct').textContent = Math.round(pct) + '%'; $('tl-name').textContent = s.label;
+  const lis = $('l-events').children;
+  for (let i = 0; i < lis.length; i++) lis[i].className = L.t >= P.events[i].t ? 'done' : '';
+  let cur = -1;
+  P.events.forEach((e, i) => { if (L.t >= e.t) cur = i; });
+  if (cur >= 0 && lis[cur]) lis[cur].className = L.phase === 'run' && cur < lis.length - 1 ? 'done cur' : 'done';
 }
 
-// ---- flight update ----
 function stepLaunch(dt) {
   const P = L.plan;
   if (L.phase === 'run') {
@@ -200,69 +327,152 @@ function stepLaunch(dt) {
     const prevT = L.t; L.t += dt * L.warpEff;
     P.events.forEach((e, i) => { if (prevT < e.t && L.t >= e.t) onEvent(e, i); });
     if (L.t >= P.tEnd) { L.phase = 'done'; L.done = true; completeLaunch(); }
-  } else { L.warpEff = 1; }
+  } else {
+    L.warpEff = 1;
+  }
+
   const t = L.t, s = P.stateAt(t), s2 = P.stateAt(t + 1.2), s0 = P.stateAt(t - 1.2);
   const dvdt = (s2.v - s0.v) / 2.4;
-  // place rocket
   const rk = rocket;
   const padW = padWorldPos(), padQ = padWorldQuat();
+
   if (t < 0 || !L.u0) {
-    rk.root.position.copy(padGroup.localToWorld(V3(0, 0.005, 0))); rk.root.quaternion.copy(padQ);
+    rk.root.position.copy(padGroup.localToWorld(V3(0, 0.005, 0)));
+    rk.root.quaternion.copy(padQ);
     if (t >= 0 && L.phase !== 'idle' && !L.u0) {
       L.u0 = V3(0, 1, 0).applyQuaternion(padQ).normalize();
-      const axis = V3(0, 1, 0).applyQuaternion(earthTilt.quaternion); L.e0 = new THREE.Vector3().crossVectors(axis, L.u0).normalize(); L.nrm = new THREE.Vector3().crossVectors(L.u0, L.e0).normalize(); L.padAnchor = padW.clone();
+      const axis = V3(0, 1, 0).applyQuaternion(earthTilt.quaternion);
+      L.e0 = new THREE.Vector3().crossVectors(axis, L.u0).normalize();
+      L.nrm = new THREE.Vector3().crossVectors(L.u0, L.e0).normalize();
+      L.padAnchor = padW.clone();
     }
   }
+
   if (L.u0 && t >= 0) {
     const pos = (st) => L.u0.clone().multiplyScalar(Math.cos(st.phi)).addScaledVector(L.e0, Math.sin(st.phi)).multiplyScalar(visR(st.rKm));
     const p = pos(s), p2 = pos(P.stateAt(t + Math.max(1.5, L.warpEff * 0.05)));
     const tan = p2.clone().sub(p); if (tan.length() < 1e-7) tan.copy(L.u0); tan.normalize();
     const zz = new THREE.Vector3().crossVectors(L.nrm, tan).normalize();
-    rk.root.position.copy(p); rk.root.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(L.nrm, tan, zz));
+    rk.root.position.copy(p);
+    rk.root.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(L.nrm, tan, zz));
     L.tan = tan; L.pos = p;
-  } else { L.tan = V3(0, 1, 0).applyQuaternion(padQ); L.pos = rk.root.position.clone(); }
-  // flame
+  } else {
+    L.tan = V3(0, 1, 0).applyQuaternion(padQ);
+    L.pos = rk.root.position.clone();
+  }
+
   const alt = clamp(s.h / 80, 0, 1), thr = s.thr;
-  rk.flame.visible = thr > 0.02 && rk.stage1.parent === rk.root || (thr > 0.02 && L.t > 164);
+  const stage1Active = (rk.stage1.parent === rk.root) && (s.stage === 0);
+  const stage2Active = (L.t >= 164) && (s.stage === 2 || s.stage === 4 || s.stage === 6);
+  rk.flame.visible = thr > 0.02 && (stage1Active || stage2Active);
+  rk.flame.position.y = stage2Active ? 0.0415 : 0;
+
   const fl = thr * (0.85 + 0.25 * Math.sin(L.t * 40 + Math.random())) * (1 + alt * 0.6);
-  rk.fo.scale.set(1 + alt * 1.5, fl, 1 + alt * 1.5); rk.fi.scale.set(1 + alt, fl, 1 + alt);
-  if (s.stage >= 1 && !(s.stage === 2 || s.stage === 4 || s.stage === 6)) rk.flame.visible = false;
-  if (L.t > 164) { rk.flame.position.y = 0.0415; } else { rk.flame.position.y = 0; }
-  rk.light.intensity = thr * 1.4 * (1 - alt); 
-  // smoke
-  if (t > -3 && t < 22 && L.phase === 'run') { L.smokeT += dt * Math.max(1, L.warpEff * 0.5); const n = Math.floor(L.smokeT * 14); if (n > 0) { L.smokeT = 0; const up = V3(0, 1, 0).applyQuaternion(padQ); spawnSmoke(padGroup.localToWorld(V3(0, 0.006, 0)), up, n); } }
-  smoke.forEach((p) => { if (p.life > 0) { p.life -= dt * Math.max(1, L.warpEff * 0.5); const k = 1 - p.life / p.max; p.sp.position.addScaledVector(p.v, dt); p.sp.scale.setScalar(p.s0 + k * 0.1); p.sp.material.opacity = (1 - k) * 0.5 * Math.min(1, k * 8); if (p.life <= 0) p.sp.visible = false; } });
-  // ground disc
+  rk.fo.scale.set(1 + alt * 1.5, fl, 1 + alt * 1.5);
+  rk.fi.scale.set(1 + alt, fl, 1 + alt);
+  rk.light.intensity = thr * 1.4 * (1 - alt);
+
+  if (t > -3 && t < 22 && L.phase === 'run') {
+    L.smokeT += dt * Math.max(1, L.warpEff * 0.5);
+    const n = Math.floor(L.smokeT * 14);
+    if (n > 0) {
+      L.smokeT = 0;
+      const up = V3(0, 1, 0).applyQuaternion(padQ);
+      spawnSmoke(padGroup.localToWorld(V3(0, 0.006, 0)), up, n);
+    }
+  }
+  smoke.forEach((p) => {
+    if (p.life > 0) {
+      p.life -= dt * Math.max(1, L.warpEff * 0.5);
+      const k = 1 - p.life / p.max;
+      p.sp.position.addScaledVector(p.v, dt);
+      p.sp.scale.setScalar(p.s0 + k * 0.1);
+      p.sp.material.opacity = (1 - k) * 0.5 * Math.min(1, k * 8);
+      if (p.life <= 0) p.sp.visible = false;
+    }
+  });
+
   padGroup.userData.ground.visible = s.h < 60;
-  // debris
-  L.debris.forEach((d) => { d.obj.position.addScaledVector(d.v, dt * Math.min(L.warpEff, 4)); d.obj.rotation.x += d.spin.x * dt; d.obj.rotation.y += d.spin.y * dt; d.life -= dt; d.obj.traverse((c) => { if (c.isMesh) { c.material.transparent = true; c.material.opacity = clamp(d.life / 6, 0, 1); } }); if (d.life <= 0) d.obj.visible = false; });
-  // trail & marker
+
+  L.debris.forEach((d) => {
+    d.obj.position.addScaledVector(d.v, dt * Math.min(L.warpEff, 4));
+    d.obj.rotation.x += d.spin.x * dt;
+    d.obj.rotation.y += d.spin.y * dt;
+    d.life -= dt;
+    d.obj.traverse((c) => {
+      if (c.isMesh) { c.material.transparent = true; c.material.opacity = clamp(d.life / 6, 0, 1); }
+    });
+    if (d.life <= 0) d.obj.visible = false;
+  });
+
   if (L.u0 && t >= 0 && L.phase === 'run') {
     const last = trailCount ? V3(trailPos[(trailCount - 1) * 3], trailPos[(trailCount - 1) * 3 + 1], trailPos[(trailCount - 1) * 3 + 2]) : null;
-    if (!last || last.distanceTo(L.pos) > 0.02) { if (trailCount < TRAIL_N) { trailPos.set([L.pos.x, L.pos.y, L.pos.z], trailCount * 3); trailCount++; trailGeo.setDrawRange(0, trailCount); trailGeo.attributes.position.needsUpdate = true; } }
+    if (!last || last.distanceTo(L.pos) > 0.02) {
+      if (trailCount < TRAIL_N) {
+        trailPos.set([L.pos.x, L.pos.y, L.pos.z], trailCount * 3);
+        trailCount++;
+        trailGeo.setDrawRange(0, trailCount);
+        trailGeo.attributes.position.needsUpdate = true;
+      }
+    }
   }
-  const cd = camera.position.distanceTo(rk.root.position); markerGlow.position.copy(rk.root.position); markerGlow.scale.setScalar(clamp(cd * 0.035, 0.015, 1.2));
+
+  const cd = camera.position.distanceTo(rk.root.position);
+  markerGlow.position.copy(rk.root.position);
+  markerGlow.scale.setScalar(clamp(cd * 0.035, 0.015, 1.2));
   markerGlow.visible = cd > 0.6 && L.t >= 0;
   trail.visible = true;
+
   updateLaunchUI(s, dvdt);
   launchCamera(dt, s);
 }
-function detach(obj, vel, spin) { scene.attach(obj); L.debris.push({ obj, v: vel, spin, life: 14 }); }
+
+function detach(obj, vel, spin) {
+  scene.attach(obj);
+  L.debris.push({ obj, v: vel, spin, life: 14 });
+}
+
 function onEvent(e, i) {
   const rk = rocket, tn = L.tan || V3(0, 1, 0), side = L.nrm || V3(1, 0, 0);
   toast(e.n);
   if (e.t === 159) detach(rk.stage1, tn.clone().multiplyScalar(-0.012).addScaledVector(side, 0.004), V3(0.6, 0.3, 0));
-  if (e.t === 200) { detach(rk.fa, side.clone().multiplyScalar(0.012).addScaledVector(tn, -0.002), V3(0.4, 1.2, 0)); detach(rk.fb, side.clone().multiplyScalar(-0.012).addScaledVector(tn, -0.002), V3(-0.4, -1.2, 0)); }
-  if (e.n.indexOf('نشر') === 0) { const m = buildCubeSat(0.0016); m.root.position.copy(rk.root.position); m.root.quaternion.copy(rk.root.quaternion); scene.add(m.root); L.deployed = m.root; rk.payload.visible = false; L.deployVel = tn.clone().multiplyScalar(0.004); }
+  if (e.t === 200) {
+    detach(rk.fa, side.clone().multiplyScalar(0.012).addScaledVector(tn, -0.002), V3(0.4, 1.2, 0));
+    detach(rk.fb, side.clone().multiplyScalar(-0.012).addScaledVector(tn, -0.002), V3(-0.4, -1.2, 0));
+  }
+  if (e.n.indexOf('نشر') === 0) {
+    const m = buildCubeSat(0.0016);
+    m.root.position.copy(rk.root.position);
+    m.root.quaternion.copy(rk.root.quaternion);
+    scene.add(m.root);
+    L.deployed = m.root;
+    rk.payload.visible = false;
+  }
 }
+
 function completeLaunch() {
-  const k = L.target, o = ORB[k], P = L.plan, st = P.stateAt(P.tEnd - 25), s = sats[k];
-  const X = L.pos.clone().normalize(); let Z = L.tan.clone(); Z.addScaledVector(X, -Z.dot(X)).normalize(); const Y = new THREE.Vector3().crossVectors(Z, X).normalize();
-  o.quat.setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z)); o.ring.quaternion.copy(o.quat);
-  s.ang = 0; s.pos.copy(satPos(k, 0)); s.qW.copy(orbitFrameQuat(s.pos, 0, k)); s.w.set((Math.random() - 0.5) * 0.12, (Math.random() - 0.5) * 0.12, (Math.random() - 0.5) * 0.12);
+  const k = L.target, o = ORB[k], s = sats[k];
+  if (L.deployed) { scene.remove(L.deployed); L.deployed = null; }
+  rocket.payload.visible = true;
+
+  const X = L.pos.clone().normalize();
+  let Z = L.tan.clone(); Z.addScaledVector(X, -Z.dot(X)).normalize();
+  const Y = new THREE.Vector3().crossVectors(Z, X).normalize();
+  o.quat.setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));
+  o.ring.quaternion.copy(o.quat);
+
+  s.ang = 0;
+  s.pos.copy(satPos(k, 0));
+  s.qW.copy(orbitFrameQuat(s.pos, 0, k));
+  s.w.set((Math.random() - 0.5) * 0.12, (Math.random() - 0.5) * 0.12, (Math.random() - 0.5) * 0.12);
   s.wheel.set(0, 0, 0); s.batt = 90; s.tSkin = 20; s.tBatt = 18; s.buf = 0; s.ctl = 'hold';
-  $('btn-start').textContent = 'بدء العد التنازلي'; $('btn-goorbit').hidden = false; toast('تم نشر الكيوب سات. اضغط «عرض القمر في مداره»'); applyVisibility();
+
+  $('btn-start').textContent = 'بدء العد التنازلي';
+  $('btn-goorbit').hidden = false;
+  toast('تم نشر الكيوب سات. اضغط «عرض القمر في مداره»');
+  applyVisibility();
 }
+
 function launchCamera(dt, s) {
   const rk = rocket.root, t = L.t, k = 1 - Math.exp(-dt * 2.6);
   let mode = L.camMode;
@@ -271,12 +481,30 @@ function launchCamera(dt, s) {
   const U = L.u0 ? L.u0.clone() : up.clone(), E = L.e0 ? L.e0.clone() : V3(1, 0, 0).applyQuaternion(padQ), N = L.nrm ? L.nrm.clone() : V3(0, 0, 1).applyQuaternion(padQ);
   const P = rk.position, tan = L.tan || U;
   let want, look;
-  if (mode === 'pad') { const base = L.padAnchor || padWorldPos(); want = base.clone().addScaledVector(E, 0.19).addScaledVector(N, 0.23).addScaledVector(U, 0.035); look = P.clone().addScaledVector(U, 0.02); if (L.phase === 'idle' || t < 0) look = P.clone().addScaledVector(U, 0.035); }
-  else if (mode === 'chase') { const d = 0.2 + 0.35 * clamp(t / 150, 0, 1); want = P.clone().addScaledVector(tan, -d * 0.7).addScaledVector(N, d * 0.75).addScaledVector(P.clone().normalize(), d * 0.25); look = P.clone().addScaledVector(tan, 0.01); }
-  else { const R = visR(L.plan.o.rKm) , D = Math.max(7, R * 1.9); const dir = P.clone().normalize().multiplyScalar(0.6).addScaledVector(N, 0.7).addScaledVector(E, 0.25).normalize(); want = dir.multiplyScalar(D); look = P.clone().multiplyScalar(0.25); }
-  if (!L._camInit || L._lastMode !== mode) { if (!L._camInit) { camera.position.copy(want); L.lookT.copy(look); } L._camInit = true; L._lastMode = mode; }
+  if (mode === 'pad') {
+    const base = L.padAnchor || padWorldPos();
+    want = base.clone().addScaledVector(E, 0.19).addScaledVector(N, 0.23).addScaledVector(U, 0.035);
+    look = P.clone().addScaledVector(U, L.phase === 'idle' || t < 0 ? 0.035 : 0.02);
+  } else if (mode === 'chase') {
+    const d = 0.2 + 0.35 * clamp(t / 150, 0, 1);
+    want = P.clone().addScaledVector(tan, -d * 0.7).addScaledVector(N, d * 0.75).addScaledVector(P.clone().normalize(), d * 0.25);
+    look = P.clone().addScaledVector(tan, 0.01);
+  } else {
+    const R = visR(L.plan.o.rKm), D = Math.max(7, R * 1.9);
+    const dir = P.clone().normalize().multiplyScalar(0.6).addScaledVector(N, 0.7).addScaledVector(E, 0.25).normalize();
+    want = dir.multiplyScalar(D);
+    look = P.clone().multiplyScalar(0.25);
+  }
+  if (!L._camInit || L._lastMode !== mode) {
+    if (!L._camInit) { camera.position.copy(want); L.lookT.copy(look); }
+    L._camInit = true; L._lastMode = mode;
+  }
   const kk = mode === 'pad' && t < 1 ? 1 : k;
-  camera.position.lerp(want, kk); L.lookT.lerp(look, kk); camera.near = 0.004; camera.lookAt(L.lookT); camera.updateProjectionMatrix();
+  camera.position.lerp(want, kk);
+  L.lookT.lerp(look, kk);
+  camera.near = 0.004;
+  camera.lookAt(L.lookT);
+  camera.updateProjectionMatrix();
 }
 EOF
 echo ok
