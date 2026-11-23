@@ -153,9 +153,8 @@
     </div>
   </aside>
 
-  <!-- لوحة التحكم اليمنى في وضع المدارات (نفس تصميم الصورة الثالثة + السرعة) -->
+  <!-- لوحة التحكم اليمنى في وضع المدارات -->
   <aside id="panel-orbit-right" class="fixed top-28 right-3 bottom-3 w-[325px] max-w-[92vw] z-20 glass rounded-2xl p-3.5 overflow-y-auto custom-scroll space-y-3">
-    <!-- أزرار الحالة السريعة -->
     <div class="grid grid-cols-3 gap-1.5">
       <button id="btn-jump-sun" type="button" class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30">
         ضوء الشمس
@@ -168,7 +167,6 @@
       </button>
     </div>
 
-    <!-- تدوير القمر + كاميرا القمر -->
     <div class="bg-slate-900/75 rounded-xl p-3 border border-slate-800 space-y-2.5">
       <div class="flex items-center justify-between">
         <span id="lbl-adcs-title" class="text-xs font-bold text-sky-300">تدوير القمر في المدار + كاميرا القمر</span>
@@ -220,7 +218,6 @@
       </button>
     </div>
 
-    <!-- اختيار المدار + الارتفاع + التحكم بالسرعة -->
     <div class="bg-slate-900/75 rounded-xl p-3 border border-slate-800 space-y-2.5">
       <div id="lbl-orbit-select" class="text-xs font-bold text-sky-300">اختيار المدار والارتفاع (LEO / MEO / GEO)</div>
       <div class="grid grid-cols-4 gap-1">
@@ -238,7 +235,6 @@
         <input id="slider-alt" type="range" min="250" max="36000" step="50" value="550" class="w-full" />
       </div>
 
-      <!-- شريط السرعة (خروج من المدار أو سقوط نحو الأرض) -->
       <div class="bg-slate-950/80 rounded-lg p-2.5 border border-slate-800 space-y-1.5">
         <div class="flex items-center justify-between text-xs">
           <span id="lbl-manual-speed" class="font-semibold text-amber-300">سرعة الدوران</span>
@@ -256,7 +252,6 @@
       </div>
     </div>
 
-    <!-- أوضاع التشغيل -->
     <div class="bg-slate-900/75 rounded-xl p-3 border border-slate-800 space-y-1.5">
       <div id="lbl-modes" class="text-xs font-bold text-sky-300 mb-1">أوضاع تشغيل القمر (5 Modes)</div>
       <button data-mode="SAFE" type="button" class="mode-btn w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700">
@@ -323,10 +318,10 @@
     </div>
   </aside>
 
-  <!-- قائمة تشريح الكيوب سات على اليمين (مرتبة بحيث يبقى الكيوب سات مكشوفاً على اليسار) -->
+  <!-- قائمة تشريح الكيوب سات على اليمين -->
   <aside id="panel-anatomy-right" class="hidden fixed top-28 right-3 bottom-3 w-[310px] max-w-[90vw] z-20 glass rounded-2xl p-3 overflow-y-auto custom-scroll space-y-2.5">
     <div class="flex items-center justify-between gap-2">
-      <span id="lbl-anatomy-title" class="text-xs font-bold text-sky-300">تفكيك أجزاء 3U CubeSat</span>
+      <span id="lbl-anatomy-title" class="text-xs font-bold text-sky-300">قائمة تفكيك أجزاء الكيوب سات (3U)</span>
       <button id="btn-xray" type="button" class="text-[11px] px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">
         هيكل شفاف
       </button>
@@ -697,48 +692,48 @@
       const CUBE_PARTS = [
         {
           id: 'structure',
-          arName: 'الهيكل المعدني (6061-T6 Frame)',
-          enName: 'Aluminum Chassis & Rails',
+          arName: '1. الهيكل وقضبان التثبيت',
+          enName: '1. 3U Frame & Rails',
           offset: [0, 0, -1.35],
           arDesc: 'هيكل ألمنيوم قياسي 3U بأبعاد 10×10×30 سم مع قضبان التثبيت في حاضنة الإطلاق.',
-          enDesc: 'Standard 3U (10×10×30 cm) CNC aluminum structure with deployment rails.'
+          enDesc: 'Standard 3U (10×10×30 cm) aluminum structure with deployment rails.'
         },
         {
           id: 'eps',
-          arName: 'الألواح والبطاريات (EPS & Battery)',
-          enName: 'Solar Panels & EPS Battery',
+          arName: '2. الألواح والبطاريات (EPS)',
+          enName: '2. Solar Panels & Battery',
           offset: [0, -1.25, 0],
           arDesc: 'تولّد الطاقة الشمسية وتخزنها في بطاريات الليثيوم لتشغيل الأنظمة أثناء الظل.',
           enDesc: 'Harvests solar power and regulates battery charge/discharge across sunlight and eclipse.'
         },
         {
           id: 'obc',
-          arName: 'حاسوب القيادة (OBC)',
-          enName: 'On-Board Computer',
+          arName: '3. حاسوب القيادة (OBC)',
+          enName: '3. On-Board Computer',
           offset: [0, 1.25, 0],
           arDesc: 'يدير برمجيات الطيران، أوضاع التشغيل، ومراقبة صحة الأنظمة الفرعية.',
           enDesc: 'Executes flight software, mode transitions, and telemetry health monitoring.'
         },
         {
           id: 'adcs',
-          arName: 'عجلات رد الفعل (ADCS Reaction Wheels)',
-          enName: 'ADCS Reaction Wheels',
+          arName: '4. نظام التوجيه (ADCS)',
+          enName: '4. Reaction Wheels (ADCS)',
           offset: [1.35, 0, 0],
           arDesc: 'تتحكم بتدوير القمر (Roll, Pitch, Yaw) عبر حفظ الزخم الزاوي بدون صرف وقود.',
           enDesc: 'Controls 3-axis attitude (Roll, Pitch, Yaw) using conservation of angular momentum.'
         },
         {
           id: 'comms',
-          arName: 'نظام الاتصالات (UHF/S-Band)',
-          enName: 'Communications & Antennas',
+          arName: '5. نظام الاتصالات (TTC)',
+          enName: '5. Communications (TTC)',
           offset: [-1.35, 0, 0],
           arDesc: 'يرسل البيانات والصور إلى المحطة الأرضية ويستقبل أوامر التحكم.',
           enDesc: 'Downlinks telemetry and payload data and receives ground station commands.'
         },
         {
           id: 'payload',
-          arName: 'الحمولة العلمية (Optical Camera)',
-          enName: 'Earth Observation Payload',
+          arName: '6. الحمولة العلمية (Payload)',
+          enName: '6. Optical Payload',
           offset: [0, 0, 1.35],
           arDesc: 'كاميرا رصد أرضي لالتقاط الصور أثناء العبور فوق المناطق المستهدفة مثل العراق.',
           enDesc: 'Optical imaging payload capturing Earth observations during passes such as over Iraq.'
@@ -799,7 +794,7 @@
           lAlt: 'الارتفاع',
           lVel: 'السرعة',
           lG: 'التسارع (G)',
-          anatomyTitle: 'تفكيك أجزاء 3U CubeSat',
+          anatomyTitle: 'قائمة تفكيك أجزاء الكيوب سات (3U)',
           xrayBtn: 'هيكل شفاف',
           explodeAll: 'تفكيك الكل',
           assembleAll: 'تجميع الكل',
@@ -858,7 +853,7 @@
           lAlt: 'Altitude',
           lVel: 'Velocity',
           lG: 'Accel (G)',
-          anatomyTitle: '3U CubeSat Disassembly',
+          anatomyTitle: '3U CubeSat Disassembly List',
           xrayBtn: 'X-Ray View',
           explodeAll: 'Explode All',
           assembleAll: 'Assemble All',
@@ -1472,7 +1467,6 @@
             document.getElementById('val-l-vel').textContent = (p * 7.6).toFixed(2) + ' km/s';
             document.getElementById('val-l-g').textContent = (p < 0.75 ? (1.2 + Math.sin(p * Math.PI) * 2.4).toFixed(1) : '0.0') + ' G';
           } else if (state.launchCompleted) {
-            // بعد اكتمال النشر يبقى القمر مستمراً في الدوران داخل مداره
             document.getElementById('val-stage').textContent = t.stageDone;
           }
         }
