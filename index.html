@@ -25,10 +25,10 @@
       z-index: 1;
     }
     .glass {
-      background: rgba(9, 15, 30, 0.82);
+      background: rgba(9, 15, 30, 0.84);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(56, 189, 248, 0.22);
+      border: 1px solid rgba(56, 189, 248, 0.24);
     }
     .custom-scroll::-webkit-scrollbar {
       width: 6px;
@@ -74,8 +74,24 @@
     </button>
   </nav>
 
+  <!-- أزرار تقريب وإبعاد الكاميرا وتحديد موقع العراق -->
+  <div id="zoom-controls" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 glass rounded-xl px-3 py-1.5 flex items-center gap-2">
+    <button id="btn-zoom-in" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-sky-500 hover:text-slate-950 text-xs font-bold transition" title="تقريب">
+      + تقريب
+    </button>
+    <button id="btn-zoom-out" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-sky-500 hover:text-slate-950 text-xs font-bold transition" title="إبعاد">
+      - إبعاد
+    </button>
+    <button id="btn-zoom-reset" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
+      إعادة العدسة
+    </button>
+    <button id="btn-focus-iraq" type="button" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs font-bold transition">
+      📍 نقطة العراق
+    </button>
+  </div>
+
   <!-- الجهة اليسرى: 3 خانات المدارات (LEO / MEO / GEO) + خيار الكل -->
-  <aside id="panel-left" class="fixed top-28 left-3 bottom-3 w-[345px] max-w-[92vw] z-20 glass rounded-2xl p-3.5 overflow-y-auto custom-scroll space-y-3">
+  <aside id="panel-left" class="fixed top-28 left-3 bottom-16 w-[340px] max-w-[92vw] z-20 glass rounded-2xl p-3.5 overflow-y-auto custom-scroll space-y-3">
     <div class="flex items-center justify-between">
       <span class="text-xs font-bold text-sky-300">اختيار المدار وعرض المدارات</span>
       <button id="btn-all-orbits" type="button" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700">
@@ -83,7 +99,6 @@
       </button>
     </div>
 
-    <!-- 3 خانات مستقلة: LEO وحدها، MEO وحدها، GEO وحدها -->
     <div class="grid grid-cols-3 gap-2">
       <button id="card-LEO" type="button" class="orbit-box text-right rounded-xl p-2.5 border transition bg-sky-500/20 border-sky-400">
         <div class="text-xs font-extrabold text-sky-300">LEO</div>
@@ -104,7 +119,6 @@
       </button>
     </div>
 
-    <!-- تفاصيل المدار النشط -->
     <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 space-y-2">
       <div class="flex items-center justify-between">
         <span id="active-orbit-title" class="text-xs font-bold text-sky-300">المدار النشط: LEO (منخفض)</span>
@@ -129,7 +143,6 @@
       </div>
     </div>
 
-    <!-- إحصائيات الحرارة والطاقة في الشمس والظل -->
     <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 space-y-2.5">
       <div class="flex items-center justify-between">
         <span class="text-xs font-bold text-amber-300">إحصائيات الحرارة والطاقة (الشمس / الظل)</span>
@@ -179,7 +192,7 @@
   </aside>
 
   <!-- الجهة اليمنى: المودات + شنو يشتغل وشنو يطفي بالكيوب سات -->
-  <aside id="panel-right" class="fixed top-28 right-3 bottom-3 w-[345px] max-w-[92vw] z-20 glass rounded-2xl p-3.5 overflow-y-auto custom-scroll space-y-3">
+  <aside id="panel-right" class="fixed top-28 right-3 bottom-16 w-[340px] max-w-[92vw] z-20 glass rounded-2xl p-3.5 overflow-y-auto custom-scroll space-y-3">
     <div class="text-xs font-bold text-sky-300">أوضاع تشغيل الكيوب سات (Modes)</div>
 
     <div id="modes-buttons" class="grid grid-cols-1 gap-1.5">
@@ -205,10 +218,9 @@
       </button>
     </div>
 
-    <!-- بطاقة توضح شنو يشتغل وشنو يطفي في المود المختار -->
     <div class="bg-slate-900/85 rounded-xl p-3 border border-sky-500/25 space-y-2.5">
       <div class="flex items-center justify-between">
-        <span id="mode-active-name" class="text-xs font-extrabold text-amber-300">الوضع الاسمي (Nominal Mode)</span>
+        <span id="mode-active-name" class="text-xs font-extrabold text-amber-300">2. الوضع الاسمي (Nominal Mode)</span>
         <span id="mode-active-watts" class="text-xs font-mono font-bold text-emerald-300">7.2 W</span>
       </div>
       <p id="mode-active-desc" class="text-[11px] text-slate-300 leading-relaxed">
@@ -265,9 +277,9 @@
   </aside>
 
   <!-- قائمة تشريح الكيوب سات على اليمين -->
-  <aside id="panel-anatomy" class="hidden fixed top-28 right-3 bottom-3 w-[310px] max-w-[90vw] z-20 glass rounded-2xl p-3 overflow-y-auto custom-scroll space-y-2.5">
+  <aside id="panel-anatomy" class="hidden fixed top-28 right-3 bottom-16 w-[310px] max-w-[90vw] z-20 glass rounded-2xl p-3 overflow-y-auto custom-scroll space-y-2.5">
     <div class="flex items-center justify-between gap-2">
-      <span class="text-xs font-bold text-sky-300">تفكيك أجزاء 3U CubeSat</span>
+      <span class="text-xs font-bold text-sky-300">تشريح 3U CubeSat</span>
       <button id="btn-xray" type="button" class="text-[11px] px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">
         هيكل شفاف
       </button>
@@ -283,6 +295,18 @@
     </div>
 
     <div id="parts-list" class="space-y-1.5"></div>
+
+    <div class="bg-slate-900/80 rounded-xl p-2.5 border border-amber-500/25 space-y-1 text-[11px]">
+      <div class="font-bold text-amber-300">Reaction Wheels & Camera</div>
+      <div class="flex justify-between text-slate-300">
+        <span>سرعة عجلات التفاعل (RW):</span>
+        <span id="rw-rpm" class="font-mono text-emerald-300">2,450 RPM</span>
+      </div>
+      <div class="flex justify-between text-slate-300">
+        <span>حالة الكاميرا (Payload Cam):</span>
+        <span class="font-mono text-sky-300">CMOS Optical Ready</span>
+      </div>
+    </div>
   </aside>
 
   <script>
@@ -302,12 +326,32 @@
       container.appendChild(renderer.domElement);
 
       const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(45, window.innerWidth / Math.max(window.innerHeight, 1), 0.1, 1000);
-      camera.position.set(0, 7.8, 17.5);
+      scene.background = new THREE.Color(0x040711);
 
-      scene.add(new THREE.AmbientLight(0x94a3b8, 0.6));
+      const camera = new THREE.PerspectiveCamera(45, window.innerWidth / Math.max(window.innerHeight, 1), 0.1, 1000);
+      const ORBIT_CAM_DEFAULT = new THREE.Vector3(0, 12.5, 25.0);
+      const ANATOMY_CAM_DEFAULT = new THREE.Vector3(0.45, 0.85, 5.4);
+      let camDistance = 28.0;
+      let camPolar = 0.46;
+      let camAzimuth = 0.0;
+      const camTarget = new THREE.Vector3(0, 0, 0);
+
+      function applyCameraSpherical() {
+        if (state.tab === 'anatomy') {
+          camera.position.copy(ANATOMY_CAM_DEFAULT);
+          camera.lookAt(0.25, 0, 0);
+          return;
+        }
+        const x = camDistance * Math.sin(camPolar) * Math.sin(camAzimuth);
+        const y = camDistance * Math.cos(camPolar);
+        const z = camDistance * Math.sin(camPolar) * Math.cos(camAzimuth);
+        camera.position.set(x + camTarget.x, y + camTarget.y, z + camTarget.z);
+        camera.lookAt(camTarget);
+      }
+
+      scene.add(new THREE.AmbientLight(0x94a3b8, 0.65));
       const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.3);
-      sunLight.position.set(28, 8, 12);
+      sunLight.position.set(28, 12, 16);
       scene.add(sunLight);
       const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.55);
       rimLight.position.set(-18, -10, -14);
@@ -315,7 +359,7 @@
 
       (function createStars() {
         const geo = new THREE.BufferGeometry();
-        const count = 1200;
+        const count = 1300;
         const pos = new Float32Array(count * 3);
         for (let i = 0; i < count * 3; i += 3) {
           const r = 140 + Math.random() * 150;
@@ -326,17 +370,17 @@
           pos[i + 2] = r * Math.sin(phi) * Math.sin(theta);
         }
         geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-        scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xe2e8f0, size: 0.55, transparent: true, opacity: 0.85 })));
+        scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xe2e8f0, size: 0.6, transparent: true, opacity: 0.85 })));
       })();
 
       const MU = 398600.4418;
       const R_EARTH_KM = 6371;
-      const EARTH_RADIUS = 3.2;
+      const EARTH_RADIUS = 2.6;
 
       const ORBITS = {
-        LEO: { label: 'المدار النشط: LEO (منخفض)', altKm: 550, radius: 4.35, tiltX: 0.15, tiltZ: 0.08, angularSpeed: 0.45, color: 0x38bdf8 },
-        MEO: { label: 'المدار النشط: MEO (متوسط)', altKm: 20200, radius: 7.4, tiltX: 0.24, tiltZ: -0.06, angularSpeed: 0.18, color: 0xa855f7 },
-        GEO: { label: 'المدار النشط: GEO (متزامن)', altKm: 35786, radius: 10.2, tiltX: 0, tiltZ: 0, angularSpeed: 0.08, color: 0xf59e0b }
+        LEO: { label: 'المدار النشط: LEO (منخفض)', altKm: 550, radius: 3.85, tiltX: 0.16, tiltZ: 0.08, angularSpeed: 0.55, color: 0x38bdf8 },
+        MEO: { label: 'المدار النشط: MEO (متوسط)', altKm: 20200, radius: 6.4, tiltX: 0.24, tiltZ: -0.06, angularSpeed: 0.24, color: 0xa855f7 },
+        GEO: { label: 'المدار النشط: GEO (متزامن)', altKm: 35786, radius: 9.0, tiltX: 0, tiltZ: 0, angularSpeed: 0.09, color: 0xf59e0b }
       };
 
       const MODES = {
@@ -345,44 +389,44 @@
           watts: 3.4,
           desc: 'توفير أقصى للطاقة عند انخفاض البطارية أو دخول ظل الأرض؛ تبقى الأنظمة الحرجة فقط.',
           on: ['الحاسوب الرئيسي (OBC)', 'نظام الطاقة (EPS)', 'استقبال الطوارئ (UHF RX)'],
-          off: ['الكاميرا العلمية (Payload)', 'الإرسال عالي السرعة (S-Band TX)', 'عجلات التوجيه السريعة']
+          off: ['الكاميرا العلمية (Payload Cam)', 'الإرسال عالي السرعة (S-Band TX)', 'Reaction Wheels السريعة']
         },
         NOMINAL: {
           name: '2. الوضع الاسمي (Nominal Mode)',
           watts: 7.2,
           desc: 'التشغيل الاعتيادي اليومي لتوجيه القمر، قراءة الحساسات، والاتصال الدوري.',
-          on: ['الحاسوب الرئيسي (OBC)', 'نظام الطاقة (EPS)', 'التوجيه (ADCS)', 'الاتصالات (TTC)'],
-          off: ['الكاميرا العلمية (Payload)', 'السخانات الإضافية']
+          on: ['الحاسوب الرئيسي (OBC)', 'نظام الطاقة (EPS)', 'Reaction Wheels', 'الاتصالات (TTC)'],
+          off: ['الكاميرا العلمية (Payload Cam)', 'السخانات الإضافية']
         },
         IMAGING: {
           name: '3. وضع التصوير (Imaging Mode)',
           watts: 14.5,
           desc: 'توجيه دقيق نحو الأرض وتشغيل الكاميرا لالتقاط وحفظ الصور العلمية.',
-          on: ['الحاسوب الرئيسي (OBC)', 'نظام الطاقة (EPS)', 'توجيه دقيق (ADCS)', 'الكاميرا العلمية (Payload)'],
+          on: ['الحاسوب الرئيسي (OBC)', 'نظام الطاقة (EPS)', 'Reaction Wheels', 'الكاميرا العلمية (Payload Cam)'],
           off: ['البث الأرضي الثقيل (Downlink TX)', 'السخانات الإضافية']
         },
         DOWNLINK: {
           name: '4. وضع الإرسال الأرضي (Downlink)',
           watts: 12.8,
           desc: 'تفريغ البيانات والصور المخزنة إلى المحطة الأرضية عند توفر الرؤية.',
-          on: ['الحاسوب الرئيسي (OBC)', 'نظام الطاقة (EPS)', 'التوجيه (ADCS)', 'مرسل البيانات (S-Band TX)'],
-          off: ['الكاميرا العلمية (Payload)', 'السخانات الإضافية']
+          on: ['الحاسوب الرئيسي (OBC)', 'نظام الطاقة (EPS)', 'Reaction Wheels', 'مرسل البيانات (S-Band TX)'],
+          off: ['الكاميرا العلمية (Payload Cam)', 'السخانات الإضافية']
         },
         THERMAL: {
           name: '5. وضع التدفئة والحرارة (Thermal)',
           watts: 10.7,
           desc: 'تشغيل السخانات الحرارية لحماية البطارية والأنظمة أثناء البرودة الشديدة في الظل.',
           on: ['الحاسوب الرئيسي (OBC)', 'نظام الطاقة (EPS)', 'السخانات الحرارية (Heaters)', 'مراقبة الحرارة'],
-          off: ['الكاميرا العلمية (Payload)', 'البث الأرضي الثقيل (Downlink TX)']
+          off: ['الكاميرا العلمية (Payload Cam)', 'البث الأرضي الثقيل (Downlink TX)']
         }
       };
 
       const state = {
         hudHidden: false,
         tab: 'orbit',
-        orbitSelection: 'LEO', // 'LEO' | 'MEO' | 'GEO' | 'ALL'
+        orbitSelection: 'LEO',
         mode: 'NOMINAL',
-        angles: { LEO: 0.4, MEO: 1.7, GEO: 0.8 },
+        angles: { LEO: 0.5, MEO: 1.8, GEO: 0.9 },
         earthRot: 0,
         battery: 84,
         tempSkin: 38,
@@ -397,6 +441,16 @@
         partExploded: {}
       };
 
+      function latLonToVector3(latDeg, lonDeg, radius) {
+        const phi = THREE.MathUtils.degToRad(90 - latDeg);
+        const theta = THREE.MathUtils.degToRad(lonDeg + 180);
+        return new THREE.Vector3(
+          -radius * Math.sin(phi) * Math.cos(theta),
+          radius * Math.cos(phi),
+          radius * Math.sin(phi) * Math.sin(theta)
+        );
+      }
+
       function createEarthTexture() {
         const canvas = document.createElement('canvas');
         canvas.width = 1024;
@@ -410,7 +464,7 @@
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, 1024, 512);
 
-        ctx.strokeStyle = 'rgba(186, 230, 253, 0.12)';
+        ctx.strokeStyle = 'rgba(186, 230, 253, 0.14)';
         ctx.lineWidth = 1;
         for (let x = 0; x <= 1024; x += 64) {
           ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
@@ -419,16 +473,19 @@
           ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1024, y); ctx.stroke();
         }
 
+        // آسيا والشرق الأوسط والعراق
         ctx.fillStyle = '#2d6a4f';
         ctx.beginPath();
         ctx.ellipse(640, 195, 130, 68, -0.1, 0, Math.PI * 2);
         ctx.fill();
 
+        // أفريقيا
         ctx.fillStyle = '#52796f';
         ctx.beginPath();
         ctx.ellipse(560, 295, 72, 92, 0.15, 0, Math.PI * 2);
         ctx.fill();
 
+        // الأمريكتان
         ctx.fillStyle = '#40916c';
         ctx.beginPath();
         ctx.ellipse(250, 220, 95, 110, 0.2, 0, Math.PI * 2);
@@ -440,17 +497,37 @@
       const spaceGroup = new THREE.Group();
       scene.add(spaceGroup);
 
+      const earthGroup = new THREE.Group();
+      spaceGroup.add(earthGroup);
+
       const earthMesh = new THREE.Mesh(
         new THREE.SphereGeometry(EARTH_RADIUS, 48, 48),
         new THREE.MeshStandardMaterial({ map: createEarthTexture(), roughness: 0.72, metalness: 0.05 })
       );
-      spaceGroup.add(earthMesh);
+      earthGroup.add(earthMesh);
 
       const atmoMesh = new THREE.Mesh(
         new THREE.SphereGeometry(EARTH_RADIUS * 1.025, 40, 40),
         new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.14, side: THREE.BackSide })
       );
-      spaceGroup.add(atmoMesh);
+      earthGroup.add(atmoMesh);
+
+      // نقطة محددة فوق العراق (33.2° شمالاً، 44.0° شرقاً)
+      const iraqMarkerGroup = new THREE.Group();
+      const iraqPin = new THREE.Mesh(
+        new THREE.SphereGeometry(0.085, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xfbbf24 })
+      );
+      const iraqRing = new THREE.Mesh(
+        new THREE.RingGeometry(0.12, 0.2, 24),
+        new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide })
+      );
+      const iraqLocalPos = latLonToVector3(33.2, 44.0, EARTH_RADIUS * 1.015);
+      iraqMarkerGroup.position.copy(iraqLocalPos);
+      iraqMarkerGroup.lookAt(iraqLocalPos.clone().multiplyScalar(2));
+      iraqRing.position.z = 0.02;
+      iraqMarkerGroup.add(iraqPin, iraqRing);
+      earthGroup.add(iraqMarkerGroup);
 
       const orbitRings = {};
       ['LEO', 'MEO', 'GEO'].forEach((key) => {
@@ -462,7 +539,7 @@
         }
         const line = new THREE.Line(
           new THREE.BufferGeometry().setFromPoints(pts),
-          new THREE.LineBasicMaterial({ color: cfg.color, transparent: true, opacity: 0.7 })
+          new THREE.LineBasicMaterial({ color: cfg.color, transparent: true, opacity: 0.75 })
         );
         line.rotation.x = cfg.tiltX;
         line.rotation.z = cfg.tiltZ;
@@ -470,7 +547,7 @@
         orbitRings[key] = line;
       });
 
-      function buildCubeSat(scale = 0.35) {
+      function buildCubeSat(scale = 0.42) {
         const root = new THREE.Group();
         root.scale.setScalar(scale);
 
@@ -503,11 +580,11 @@
         addPart('structure', struct);
 
         const eps = new THREE.Group();
-        const panelMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, metalness: 0.5, roughness: 0.3 });
-        const lp = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.04, 0.82), panelMat);
-        lp.position.set(-1.35, 0, 0);
-        const rp = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.04, 0.82), panelMat);
-        rp.position.set(1.35, 0, 0);
+        const panelMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.5, roughness: 0.3 });
+        const lp = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.05, 0.85), panelMat);
+        lp.position.set(-1.42, 0, 0);
+        const rp = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.05, 0.85), panelMat);
+        rp.position.set(1.42, 0, 0);
         const batt = new THREE.Mesh(
           new THREE.BoxGeometry(0.68, 0.45, 0.68),
           new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.5 })
@@ -525,13 +602,25 @@
         obc.position.set(0, 0.35, 0);
         addPart('obc', obc);
 
+        // عجلات رد الفعل (Reaction Wheels) بوضوح
         const adcs = new THREE.Group();
         const wheelMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.2 });
-        const wx = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.1, 20), wheelMat);
+        const spokeMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, metalness: 0.9, roughness: 0.15 });
+        const wx = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.12, 24), wheelMat);
         wx.rotation.z = Math.PI / 2;
-        const wy = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.1, 20), wheelMat);
-        const wz = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.1, 20), wheelMat);
+        const wxBar = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.48, 0.05), spokeMat);
+        wx.add(wxBar);
+
+        const wy = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.12, 24), wheelMat);
+        const wyBar = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.14, 0.05), spokeMat);
+        wyBar.rotation.x = Math.PI / 2;
+        wy.add(wyBar);
+
+        const wz = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.12, 24), wheelMat);
         wz.rotation.x = Math.PI / 2;
+        const wzBar = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.05, 0.14), spokeMat);
+        wz.add(wzBar);
+
         adcs.add(wx, wy, wz);
         adcs.position.set(0, -0.15, 0);
         addPart('adcs', adcs);
@@ -547,28 +636,34 @@
         comms.add(a1, a2);
         addPart('comms', comms);
 
+        // كاميرا الكيوب سات (Camera)
         const payload = new THREE.Group();
-        const cam = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.22, 0.22, 0.42, 20),
-          new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.7, roughness: 0.2 })
+        const camBody = new THREE.Mesh(
+          new THREE.BoxGeometry(0.42, 0.36, 0.36),
+          new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.3 })
         );
-        cam.rotation.x = Math.PI / 2;
-        cam.position.set(0, 0.9, 0.62);
-        payload.add(cam);
+        camBody.position.set(0, 0.9, 0.56);
+        const camLens = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.15, 0.17, 0.24, 24),
+          new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.9, roughness: 0.1 })
+        );
+        camLens.rotation.x = Math.PI / 2;
+        camLens.position.set(0, 0.9, 0.78);
+        payload.add(camBody, camLens);
         addPart('payload', payload);
 
         return { root, partsMap, trackedMeshes, wheels: { wx, wy, wz } };
       }
 
       const satByOrbit = {
-        LEO: buildCubeSat(0.35),
-        MEO: buildCubeSat(0.38),
-        GEO: buildCubeSat(0.42)
+        LEO: buildCubeSat(0.42),
+        MEO: buildCubeSat(0.45),
+        GEO: buildCubeSat(0.48)
       };
       spaceGroup.add(satByOrbit.LEO.root, satByOrbit.MEO.root, satByOrbit.GEO.root);
 
-      const satAnatomy = buildCubeSat(0.95);
-      satAnatomy.root.position.set(-1.35, 0, 0);
+      const satAnatomy = buildCubeSat(0.85);
+      satAnatomy.root.position.set(-1.15, 0, 0);
       satAnatomy.root.visible = false;
       scene.add(satAnatomy.root);
 
@@ -593,12 +688,12 @@
       spaceGroup.add(rocketGroup);
 
       const CUBE_PARTS = [
-        { id: 'structure', name: '1. الهيكل وقضبان التثبيت', offset: [0, 0, -1.35] },
-        { id: 'eps', name: '2. الألواح والبطاريات (EPS)', offset: [0, -1.25, 0] },
-        { id: 'obc', name: '3. حاسوب القيادة (OBC)', offset: [0, 1.25, 0] },
-        { id: 'adcs', name: '4. نظام التوجيه (ADCS)', offset: [1.35, 0, 0] },
-        { id: 'comms', name: '5. نظام الاتصالات (TTC)', offset: [-1.35, 0, 0] },
-        { id: 'payload', name: '6. الحمولة العلمية (Payload)', offset: [0, 0, 1.35] }
+        { id: 'structure', name: '1. الهيكل وقضبان التثبيت', offset: [0, 0, -1.2] },
+        { id: 'eps', name: '2. الألواح والبطاريات (EPS)', offset: [0, -1.15, 0] },
+        { id: 'obc', name: '3. حاسوب القيادة (OBC)', offset: [0, 1.15, 0] },
+        { id: 'adcs', name: '4. عجلات التفاعل (Reaction Wheels)', offset: [1.25, 0, 0] },
+        { id: 'comms', name: '5. نظام الاتصالات (TTC)', offset: [-1.25, 0, 0] },
+        { id: 'payload', name: '6. الكاميرا والحمولة (Camera)', offset: [0, 0, 1.25] }
       ];
 
       const partsListEl = document.getElementById('parts-list');
@@ -702,6 +797,7 @@
         const hide = state.hudHidden;
         document.getElementById('hud-header').classList.toggle('hidden', hide);
         document.getElementById('hud-nav').classList.toggle('hidden', hide);
+        document.getElementById('zoom-controls').classList.toggle('hidden', hide || state.tab === 'anatomy');
         document.getElementById('panel-left').classList.toggle('hidden', hide || state.tab !== 'orbit');
         document.getElementById('panel-right').classList.toggle('hidden', hide || state.tab !== 'orbit');
         document.getElementById('panel-launch').classList.toggle('hidden', hide || state.tab !== 'launch');
@@ -719,20 +815,71 @@
             : 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:bg-slate-800 transition';
         });
 
+        spaceGroup.visible = (newTab !== 'anatomy');
         satAnatomy.root.visible = (newTab === 'anatomy');
         rocketGroup.visible = (newTab === 'launch' && !state.launchCompleted);
 
-        if (newTab === 'anatomy') {
-          camera.position.set(0.35, 1.1, 5.4);
-          camera.lookAt(0.25, 0, 0);
-        } else {
-          camera.position.set(0, 7.8, 17.5);
-          camera.lookAt(0, 0, 0);
-        }
-
+        applyCameraSpherical();
         syncOrbitSelectionUI();
         applyHudVisibility();
       }
+
+      // تقريب وإبعاد وتدوير بالماوس والأزرار
+      let isDragging = false;
+      let prevPointer = { x: 0, y: 0 };
+
+      renderer.domElement.addEventListener('pointerdown', (e) => {
+        if (state.tab === 'anatomy') return;
+        isDragging = true;
+        prevPointer = { x: e.clientX, y: e.clientY };
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging || state.tab === 'anatomy') return;
+        const dx = e.clientX - prevPointer.x;
+        const dy = e.clientY - prevPointer.y;
+        prevPointer = { x: e.clientX, y: e.clientY };
+        camAzimuth -= dx * 0.006;
+        camPolar = Math.max(0.18, Math.min(Math.PI - 0.18, camPolar - dy * 0.006));
+        applyCameraSpherical();
+      });
+
+      window.addEventListener('pointerup', () => {
+        isDragging = false;
+      });
+
+      renderer.domElement.addEventListener('wheel', (e) => {
+        if (state.tab === 'anatomy') return;
+        e.preventDefault();
+        camDistance = Math.max(6.5, Math.min(55.0, camDistance + e.deltaY * 0.015));
+        applyCameraSpherical();
+      }, { passive: false });
+
+      document.getElementById('btn-zoom-in').addEventListener('click', () => {
+        camDistance = Math.max(6.5, camDistance - 3.0);
+        applyCameraSpherical();
+      });
+
+      document.getElementById('btn-zoom-out').addEventListener('click', () => {
+        camDistance = Math.min(55.0, camDistance + 3.0);
+        applyCameraSpherical();
+      });
+
+      document.getElementById('btn-zoom-reset').addEventListener('click', () => {
+        camDistance = 28.0;
+        camPolar = 0.46;
+        camAzimuth = 0.0;
+        camTarget.set(0, 0, 0);
+        applyCameraSpherical();
+      });
+
+      document.getElementById('btn-focus-iraq').addEventListener('click', () => {
+        const iraqWorld = iraqLocalPos.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), earthGroup.rotation.y);
+        camAzimuth = Math.atan2(iraqWorld.x, iraqWorld.z);
+        camPolar = Math.acos(THREE.MathUtils.clamp(iraqWorld.y / iraqWorld.length(), -0.95, 0.95));
+        camDistance = 9.5;
+        applyCameraSpherical();
+      });
 
       document.getElementById('btn-eye').addEventListener('click', () => {
         state.hudHidden = !state.hudHidden;
@@ -822,9 +969,11 @@
         const dt = Math.min((now - lastTime) / 1000, 0.05);
         lastTime = now;
 
-        const earthSpeed = 0.08;
-        state.earthRot += earthSpeed * dt;
-        earthMesh.rotation.y = state.earthRot;
+        state.earthRot += 0.08 * dt;
+        earthGroup.rotation.y = state.earthRot;
+
+        const pulse = 1.0 + Math.sin(now * 0.006) * 0.22;
+        iraqRing.scale.setScalar(pulse);
 
         let primarySatPos = null;
 
@@ -837,9 +986,9 @@
           satByOrbit[k].root.lookAt(0, 0, 0);
           satByOrbit[k].root.rotateX(Math.PI / 2);
 
-          satByOrbit[k].wheels.wx.rotation.y += 7 * dt;
-          satByOrbit[k].wheels.wy.rotation.y -= 5 * dt;
-          satByOrbit[k].wheels.wz.rotation.y += 6 * dt;
+          satByOrbit[k].wheels.wx.rotation.y += 8 * dt;
+          satByOrbit[k].wheels.wy.rotation.y -= 6 * dt;
+          satByOrbit[k].wheels.wz.rotation.y += 7 * dt;
 
           if (k === (state.orbitSelection === 'ALL' ? 'LEO' : state.orbitSelection)) {
             primarySatPos = pos;
@@ -847,7 +996,7 @@
         });
 
         if (primarySatPos) {
-          const inShadow = (primarySatPos.x < -0.5) && (Math.hypot(primarySatPos.y, primarySatPos.z) < EARTH_RADIUS * 1.05);
+          const inShadow = (primarySatPos.x < -0.4) && (Math.hypot(primarySatPos.y, primarySatPos.z) < EARTH_RADIUS * 1.05);
           state.inSunlight = !inShadow;
         }
 
@@ -899,13 +1048,16 @@
           document.getElementById('stat-heater-note').textContent = state.heaterAutoOn
             ? 'السخانات الحرارية: تعمل (+3.5 W لحماية البطارية من البرودة)'
             : 'السخانات الحرارية: متوقفة (الحرارة ضمن الحدود الآمنة)';
+
+          const rpm = Math.round(2100 + Math.sin(now * 0.002) * 350);
+          document.getElementById('rw-rpm').textContent = rpm.toLocaleString() + ' RPM';
         }
 
         if (state.tab === 'anatomy') {
           satAnatomy.root.rotation.y += 0.25 * dt;
-          satAnatomy.wheels.wx.rotation.y += 9 * dt;
-          satAnatomy.wheels.wy.rotation.y -= 7 * dt;
-          satAnatomy.wheels.wz.rotation.y += 6 * dt;
+          satAnatomy.wheels.wx.rotation.y += 10 * dt;
+          satAnatomy.wheels.wy.rotation.y -= 8 * dt;
+          satAnatomy.wheels.wz.rotation.y += 9 * dt;
 
           CUBE_PARTS.forEach((p) => {
             const entry = satAnatomy.partsMap[p.id];
@@ -965,6 +1117,7 @@
         renderer.setSize(w, h);
       });
 
+      applyCameraSpherical();
       renderModeDetails();
       syncOrbitSelectionUI();
       applyHudVisibility();
