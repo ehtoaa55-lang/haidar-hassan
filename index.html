@@ -1,2211 +1,1480 @@
-```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>محاكي مدارات الأقمار الصناعية وإطلاق الكيوب سات</title>
-
-  <!-- Google Fonts: Cairo, Tajawal & Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <!-- Tailwind CSS -->
+  <title>محاكي مدارات الأقمار الصناعية والكيوب سات | 3D Orbital & CubeSat Simulator</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-  <!-- Three.js & OrbitControls via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
   <style>
-    * {
-      box-sizing: border-box;
-    }
-    html[lang="ar"] * {
-      font-family: 'Cairo', 'Tajawal', sans-serif;
-    }
-    html[lang="en"] * {
-      font-family: 'Inter', sans-serif;
-    }
-    body, html {
+    * { box-sizing: border-box; }
+    html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: #030712;
-      color: #f8fafc;
+      background: #040711;
+      color: #f1f5f9;
+      font-family: system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif;
+      user-select: none;
     }
     #canvas-container {
       position: fixed;
       inset: 0;
-      z-index: 0;
+      z-index: 1;
     }
-    .glass-panel {
-      background: rgba(9, 15, 30, 0.8);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(56, 189, 248, 0.28);
-      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.65);
+    .glass {
+      background: rgba(9, 15, 30, 0.78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(148, 163, 184, 0.18);
     }
-    .glass-card {
-      background: rgba(15, 23, 42, 0.75);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      transition: all 0.2s ease;
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
     }
-    .glass-card:hover {
-      border-color: rgba(56, 189, 248, 0.55);
-      background: rgba(15, 23, 42, 0.92);
-    }
-    .tab-btn.active {
-      background: linear-gradient(135deg, #0284c7, #2563eb);
-      color: #ffffff;
-      border-color: #38bdf8;
-      box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
-    }
-    .orbit-btn.active {
-      background: rgba(14, 165, 233, 0.25);
-      border-color: #38bdf8;
-      color: #38bdf8;
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
-    }
-    .mode-btn.active {
-      background: rgba(16, 185, 129, 0.22);
-      border-color: #34d399;
-      color: #6ee7b7;
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.22);
-    }
-    .subsystem-card.active {
-      background: rgba(245, 158, 11, 0.18);
-      border-color: #f59e0b;
-      box-shadow: 0 0 14px rgba(245, 158, 11, 0.2);
-    }
-    input[type=range] {
-      -webkit-appearance: none;
-      background: rgba(30, 41, 59, 0.95);
-      height: 6px;
-      border-radius: 999px;
-      outline: none;
-    }
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #38bdf8;
-      cursor: pointer;
-      box-shadow: 0 0 10px #38bdf8;
-      border: 2px solid #fff;
-    }
-    ::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
-    }
-    ::-webkit-scrollbar-track {
+    .custom-scroll::-webkit-scrollbar-track {
       background: rgba(15, 23, 42, 0.4);
     }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(56, 189, 248, 0.45);
-      border-radius: 10px;
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.5);
+      border-radius: 999px;
     }
-    .mono-num {
-      font-family: 'Courier New', monospace;
-      direction: ltr;
-      display: inline-block;
-    }
-    body.ui-hidden .hideable-ui {
-      opacity: 0 !important;
-      pointer-events: none !important;
-      transform: scale(0.97);
-    }
-    .ui-fade {
-      transition: opacity 0.25s ease, transform 0.25s ease;
-    }
-    @keyframes pulseBorder {
-      0%, 100% { border-color: rgba(245, 158, 11, 0.85); box-shadow: 0 0 20px rgba(245, 158, 11, 0.35); }
-      50% { border-color: rgba(56, 189, 248, 0.9); box-shadow: 0 0 28px rgba(56, 189, 248, 0.5); }
-    }
-    .iraq-active-glow {
-      animation: pulseBorder 1.5s infinite;
-    }
-    #sat-cam-container {
-      position: relative;
-      width: 100%;
-      height: 128px;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #020617;
-      border: 1px solid rgba(56, 189, 248, 0.45);
+    input[type="range"] {
+      accent-color: #38bdf8;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-
-  <!-- Main 3D WebGL Canvas -->
   <div id="canvas-container"></div>
 
-  <!-- Always-Visible Top-Right Quick Controls (Eye UI Toggle + Language Toggle) -->
-  <div class="fixed top-3 right-3 z-50 flex items-center gap-2 pointer-events-auto">
-    <button onclick="toggleHideAllUI()" id="btn-eye-toggle" title="إخفاء / إظهار القوائم والعدادات" class="glass-panel hover:bg-sky-500/25 text-sky-300 hover:text-white border border-sky-400/50 rounded-2xl px-3.5 py-2.5 flex items-center gap-2 shadow-xl transition-all">
-      <i id="eye-icon" class="fa-solid fa-eye text-base"></i>
-      <span id="eye-label" class="text-xs font-extrabold hidden sm:inline">إخفاء الواجهة</span>
-    </button>
+  <!-- شريط التحكم العلوي الثابت (زر العين + زر الترجمة) -->
+  <div id="top-bar" class="fixed top-3 left-3 right-3 z-30 flex items-center justify-between gap-2 pointer-events-none">
+    <div id="hud-header" class="glass rounded-xl px-3.5 py-2 pointer-events-auto flex flex-wrap items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+      <span id="txt-app-title" class="font-bold text-sm sm:text-base text-sky-300">محاكي مدارات الأقمار الصناعية والكيوب سات</span>
+      <span id="txt-app-sub" class="hidden md:inline text-xs text-slate-400">| LEO · MEO · GEO · 3U CubeSat</span>
+    </div>
 
-    <button onclick="toggleLanguage()" id="btn-lang-toggle" title="Switch Language / تغيير اللغة" class="glass-panel hover:bg-amber-500/25 text-amber-300 hover:text-white border border-amber-400/50 rounded-2xl px-3.5 py-2.5 flex items-center gap-1.5 shadow-xl transition-all">
-      <i class="fa-solid fa-language text-base"></i>
-      <span id="lang-label" class="text-xs font-extrabold">EN</span>
-    </button>
-  </div>
-
-  <!-- Designer Credit Badge -->
-  <div class="hideable-ui ui-fade fixed bottom-2 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-    <div class="glass-panel rounded-full px-3.5 py-1 text-[10px] sm:text-[11px] font-bold text-sky-200 border border-sky-400/30 shadow-lg">
-      <span data-i18n="designerCredit">تم التصميم بواسطة: حيدر حسن</span>
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="btn-lang" type="button" class="glass hover:bg-slate-800/90 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl border border-sky-500/30 text-sky-300 transition">
+        English
+      </button>
+      <button id="btn-eye" type="button" class="glass hover:bg-slate-800/90 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl border border-amber-500/30 text-amber-300 flex items-center gap-1.5 transition" title="إخفاء / إظهار الواجهة">
+        <span id="eye-icon">👁️</span>
+        <span id="btn-eye-label">إخفاء الواجهة</span>
+      </button>
     </div>
   </div>
 
-  <!-- Top Header & Navigation Tabs -->
-  <header class="hideable-ui ui-fade fixed top-3 left-3 right-3 sm:right-52 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-    <div class="glass-panel rounded-2xl px-3.5 py-2 flex items-center gap-2.5 pointer-events-auto">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-blue-700 flex items-center justify-center shadow-lg shadow-sky-500/30 shrink-0">
-        <i class="fa-solid fa-satellite text-white text-base"></i>
-      </div>
-      <div>
-        <h1 data-i18n="appTitle" class="text-xs sm:text-sm font-extrabold text-white leading-tight">محاكي مدارات الأقمار الصناعية والكيوب سات</h1>
-        <p data-i18n="appSubtitle" class="text-[10px] text-sky-300 font-medium">LEO • MEO • GEO • الطاقة الشمسية • التحكم الحراري • CubeSat 3U</p>
-      </div>
-    </div>
+  <!-- لوحة التنقل الرئيسية بين الأوضاع -->
+  <div id="hud-nav" class="fixed top-16 left-3 z-20 flex flex-wrap gap-1.5 glass p-1.5 rounded-xl">
+    <button id="tab-orbit" type="button" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-sky-500 text-slate-950 transition">
+      المدارات والطاقة
+    </button>
+    <button id="tab-launch" type="button" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+      محاكاة الإطلاق
+    </button>
+    <button id="tab-anatomy" type="button" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+      تشريح الكيوب سات
+    </button>
+  </div>
 
-    <nav class="glass-panel rounded-2xl p-1 flex items-center gap-1 pointer-events-auto">
-      <button onclick="switchTab('orbits')" id="tab-orbits" class="tab-btn active px-3 py-1.5 rounded-xl text-xs font-bold border border-transparent flex items-center gap-1.5 transition-all">
-        <i class="fa-solid fa-earth-asia"></i>
-        <span data-i18n="tabOrbits">المدارات والطاقة</span>
-      </button>
-      <button onclick="switchTab('launch')" id="tab-launch" class="tab-btn px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white border border-transparent flex items-center gap-1.5 transition-all">
-        <i class="fa-solid fa-rocket"></i>
-        <span data-i18n="tabLaunch">محاكاة الإطلاق</span>
-      </button>
-      <button onclick="switchTab('anatomy')" id="tab-anatomy" class="tab-btn px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white border border-transparent flex items-center gap-1.5 transition-all">
-        <i class="fa-solid fa-microchip"></i>
-        <span data-i18n="tabAnatomy">تشريح الكيوب سات</span>
-      </button>
-      <button onclick="resetCameraView()" title="Reset Camera" class="px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-200 hover:bg-slate-800/80 transition">
-        <i class="fa-solid fa-video text-sky-400"></i>
-      </button>
-    </nav>
-  </header>
-
-  <!-- Iraq Overpass Alert Banner -->
-  <div id="iraq-overpass-banner" class="hideable-ui ui-fade hidden fixed top-16 left-1/2 -translate-x-1/2 z-30 glass-panel iraq-active-glow rounded-2xl px-4 py-2 border-2 border-amber-400 flex items-center gap-3 pointer-events-auto">
-    <div class="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-300 animate-bounce">
-      <i class="fa-solid fa-camera-retro"></i>
-    </div>
+  <!-- لوحة المدارات والطاقة والحرارة (يسار) -->
+  <aside id="panel-orbit-left" class="fixed top-28 left-3 bottom-3 w-[335px] max-w-[92vw] z-20 glass rounded-2xl p-3.5 overflow-y-auto custom-scroll space-y-3">
+    <!-- أزرار القفز السريع -->
     <div>
-      <p data-i18n="iraqBannerTitle" class="text-xs sm:text-sm font-extrabold text-amber-300">🛰️ القمر يعبر الآن فوق سماء العراق (Baghdad / Iraq Overpass)!</p>
-      <p data-i18n="iraqBannerDesc" class="text-[11px] text-white">تفعيل كامل الأنظمة والكاميرا البصرية عالية الدقة للتصوير — استهلاك الطاقة الأقصى (16.8 W)</p>
+      <div id="lbl-quick-jump" class="text-xs font-semibold text-slate-400 mb-1.5">قفز سريع لحالة القمر</div>
+      <div class="grid grid-cols-3 gap-1.5">
+        <button id="btn-jump-sun" type="button" class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30">
+          ضوء الشمس
+        </button>
+        <button id="btn-jump-eclipse" type="button" class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30">
+          ظل الأرض
+        </button>
+        <button id="btn-jump-iraq" type="button" class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30">
+          فوق العراق
+        </button>
+      </div>
     </div>
-  </div>
 
-  <!-- ===================================================================== -->
-  <!-- TAB 1: ORBITS, ADCS ROTATION BUTTONS + LIVE SATELLITE CAM, EPS & TCS -->
-  <!-- ===================================================================== -->
-  <div id="panel-orbits" class="hideable-ui ui-fade fixed inset-x-3 bottom-8 top-16 z-10 pointer-events-none flex flex-col lg:flex-row justify-between items-stretch lg:items-end gap-3">
-
-    <!-- RIGHT SIDE: Orbit Presets, Jumpers, 5 Modes & ADCS Rotation + Satellite Cam -->
-    <aside class="glass-panel rounded-2xl p-3 w-full lg:w-[360px] pointer-events-auto flex flex-col gap-2 max-h-[45vh] lg:max-h-[84vh] overflow-y-auto">
-
-      <!-- Instant Jumpers -->
-      <div class="glass-card rounded-xl p-2 border-amber-500/30">
-        <p data-i18n="quickScenarioTitle" class="text-[11px] font-extrabold text-amber-300 mb-1.5 flex items-center gap-1.5">
-          <i class="fa-solid fa-bolt"></i> محاكاة فورية لحالة القمر في المدار:
-        </p>
-        <div class="grid grid-cols-3 gap-1.5">
-          <button onclick="jumpSatelliteTo('SUN')" class="py-1.5 px-2 rounded-lg text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/60 text-amber-200 flex flex-col items-center gap-0.5 transition">
-            <i class="fa-solid fa-sun text-amber-400 text-xs"></i>
-            <span data-i18n="btnJumpSun">ضوء الشمس</span>
-          </button>
-          <button onclick="jumpSatelliteTo('ECLIPSE')" class="py-1.5 px-2 rounded-lg text-[11px] font-bold bg-indigo-500/20 hover:bg-indigo-500/35 border border-indigo-400/60 text-indigo-200 flex flex-col items-center gap-0.5 transition">
-            <i class="fa-solid fa-moon text-indigo-300 text-xs"></i>
-            <span data-i18n="btnJumpEclipse">ظل الأرض</span>
-          </button>
-          <button onclick="jumpSatelliteTo('IRAQ')" class="py-1.5 px-2 rounded-lg text-[11px] font-bold bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-400/60 text-emerald-200 flex flex-col items-center gap-0.5 transition">
-            <i class="fa-solid fa-location-dot text-emerald-400 text-xs"></i>
-            <span data-i18n="btnJumpIraq">فوق العراق</span>
-          </button>
-        </div>
+    <!-- اختيار المدار والارتفاع والتحكم اليدوي بالسرعة -->
+    <div class="bg-slate-900/70 rounded-xl p-3 border border-slate-800 space-y-2.5">
+      <div class="flex items-center justify-between">
+        <span id="lbl-orbit-select" class="text-xs font-bold text-sky-300">اختيار المدار</span>
+        <span id="badge-illumination" class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">شمس ساطعة</span>
       </div>
 
-      <!-- ADCS Attitude Rotation Buttons + Live Picture-in-Picture Satellite Cam -->
-      <div class="glass-card rounded-xl p-2.5 border-purple-500/40 flex flex-col gap-2">
-        <div class="flex items-center justify-between">
-          <span data-i18n="orbitAdcsTitle" class="text-[11px] font-extrabold text-purple-300 flex items-center gap-1.5">
-            <i class="fa-solid fa-compass-drafting"></i> تدوير القمر في المدار + كاميرا القمر
+      <div class="grid grid-cols-4 gap-1">
+        <button data-orbit="LEO" type="button" class="orbit-btn py-1.5 rounded-lg text-xs font-bold bg-sky-500 text-slate-950">LEO</button>
+        <button data-orbit="MEO" type="button" class="orbit-btn py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300">MEO</button>
+        <button data-orbit="GEO" type="button" class="orbit-btn py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300">GEO</button>
+        <button data-orbit="ALL" type="button" class="orbit-btn py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300">الكل</button>
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs text-slate-300 mb-1">
+          <span id="lbl-alt">الارتفاع (Altitude)</span>
+          <span id="val-alt" class="font-mono text-sky-300 font-bold">550 km</span>
+        </div>
+        <input id="slider-alt" type="range" min="250" max="36000" step="50" value="550" class="w-full" />
+      </div>
+
+      <!-- تحكم يدوي بالسرعة (خروج من المدار أو سقوط على الأرض) -->
+      <div class="bg-slate-950/75 rounded-lg p-2.5 border border-slate-800 space-y-1.5">
+        <div class="flex items-center justify-between text-xs">
+          <span id="lbl-manual-speed" class="font-semibold text-amber-300">التحكم اليدوي بالسرعة</span>
+          <span id="val-speed-mult" class="font-mono font-bold text-sky-300">1.00x</span>
+        </div>
+        <input id="slider-speed" type="range" min="0.2" max="2.4" step="0.05" value="1.0" class="w-full" />
+        <div class="flex items-center justify-between gap-2 pt-0.5">
+          <span id="badge-flight-state" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+            مدار مستقر
           </span>
-          <div class="flex items-center gap-1">
-            <button onclick="toggleAttitudeControlMode()" id="btn-attitude-mode" class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-purple-500/25 border border-purple-400 text-purple-200 transition">
-              <span id="attitude-mode-label">تحكم يدوي</span>
-            </button>
-            <button onclick="resetOrbitAttitude()" title="Reset Attitude" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600">
-              <i class="fa-solid fa-rotate-left"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-12 gap-2 items-center">
-          <div class="col-span-7 flex flex-col gap-1.5 text-[10px]">
-            <!-- Roll -->
-            <div class="flex items-center justify-between bg-slate-900/80 rounded-lg px-1.5 py-1 border border-slate-700/60">
-              <span data-i18n="btnRollShort" class="font-bold text-slate-200">لفّ (Roll)</span>
-              <span id="orb-roll-deg" class="text-purple-300 font-bold mono-num">0°</span>
-              <div class="flex gap-1">
-                <button
-                  onmousedown="startHoldRotate('roll', -1)" onmouseup="stopHoldRotate()" onmouseleave="stopHoldRotate()"
-                  ontouchstart="event.preventDefault(); startHoldRotate('roll', -1)" ontouchend="stopHoldRotate()"
-                  onclick="stepOrbitAttitude('roll', -15)"
-                  class="w-6 h-6 rounded bg-purple-600/35 hover:bg-purple-500/50 border border-purple-400/60 text-white font-extrabold flex items-center justify-center active:scale-95">
-                  <i class="fa-solid fa-rotate-left text-[10px]"></i>
-                </button>
-                <button
-                  onmousedown="startHoldRotate('roll', 1)" onmouseup="stopHoldRotate()" onmouseleave="stopHoldRotate()"
-                  ontouchstart="event.preventDefault(); startHoldRotate('roll', 1)" ontouchend="stopHoldRotate()"
-                  onclick="stepOrbitAttitude('roll', 15)"
-                  class="w-6 h-6 rounded bg-purple-600/35 hover:bg-purple-500/50 border border-purple-400/60 text-white font-extrabold flex items-center justify-center active:scale-95">
-                  <i class="fa-solid fa-rotate-right text-[10px]"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Pitch -->
-            <div class="flex items-center justify-between bg-slate-900/80 rounded-lg px-1.5 py-1 border border-slate-700/60">
-              <span data-i18n="btnPitchShort" class="font-bold text-slate-200">ميلان (Pitch)</span>
-              <span id="orb-pitch-deg" class="text-amber-300 font-bold mono-num">0°</span>
-              <div class="flex gap-1">
-                <button
-                  onmousedown="startHoldRotate('pitch', -1)" onmouseup="stopHoldRotate()" onmouseleave="stopHoldRotate()"
-                  ontouchstart="event.preventDefault(); startHoldRotate('pitch', -1)" ontouchend="stopHoldRotate()"
-                  onclick="stepOrbitAttitude('pitch', -15)"
-                  class="w-6 h-6 rounded bg-amber-600/35 hover:bg-amber-500/50 border border-amber-400/60 text-white font-extrabold flex items-center justify-center active:scale-95">
-                  <i class="fa-solid fa-arrow-down text-[10px]"></i>
-                </button>
-                <button
-                  onmousedown="startHoldRotate('pitch', 1)" onmouseup="stopHoldRotate()" onmouseleave="stopHoldRotate()"
-                  ontouchstart="event.preventDefault(); startHoldRotate('pitch', 1)" ontouchend="stopHoldRotate()"
-                  onclick="stepOrbitAttitude('pitch', 15)"
-                  class="w-6 h-6 rounded bg-amber-600/35 hover:bg-amber-500/50 border border-amber-400/60 text-white font-extrabold flex items-center justify-center active:scale-95">
-                  <i class="fa-solid fa-arrow-up text-[10px]"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Yaw -->
-            <div class="flex items-center justify-between bg-slate-900/80 rounded-lg px-1.5 py-1 border border-slate-700/60">
-              <span data-i18n="btnYawShort" class="font-bold text-slate-200">انعراج (Yaw)</span>
-              <span id="orb-yaw-deg" class="text-sky-300 font-bold mono-num">0°</span>
-              <div class="flex gap-1">
-                <button
-                  onmousedown="startHoldRotate('yaw', -1)" onmouseup="stopHoldRotate()" onmouseleave="stopHoldRotate()"
-                  ontouchstart="event.preventDefault(); startHoldRotate('yaw', -1)" ontouchend="stopHoldRotate()"
-                  onclick="stepOrbitAttitude('yaw', -15)"
-                  class="w-6 h-6 rounded bg-sky-600/35 hover:bg-sky-500/50 border border-sky-400/60 text-white font-extrabold flex items-center justify-center active:scale-95">
-                  <i class="fa-solid fa-caret-left text-xs"></i>
-                </button>
-                <button
-                  onmousedown="startHoldRotate('yaw', 1)" onmouseup="stopHoldRotate()" onmouseleave="stopHoldRotate()"
-                  ontouchstart="event.preventDefault(); startHoldRotate('yaw', 1)" ontouchend="stopHoldRotate()"
-                  onclick="stepOrbitAttitude('yaw', 15)"
-                  class="w-6 h-6 rounded bg-sky-600/35 hover:bg-sky-500/50 border border-sky-400/60 text-white font-extrabold flex items-center justify-center active:scale-95">
-                  <i class="fa-solid fa-caret-right text-xs"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Live Satellite Camera PiP -->
-          <div class="col-span-5 flex flex-col gap-1">
-            <div id="sat-cam-container">
-              <div class="absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded bg-black/70 text-[8px] font-extrabold text-emerald-400 flex items-center gap-1 border border-emerald-500/40">
-                <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
-                <span>SAT CAM</span>
-              </div>
-              <div class="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
-                <div class="w-6 h-6 rounded-full border border-sky-400/75 flex items-center justify-center">
-                  <div class="w-1 h-1 rounded-full bg-amber-400"></div>
-                </div>
-              </div>
-            </div>
-            <p id="sat-cam-target-label" class="text-[9px] font-bold text-center text-sky-300 truncate bg-slate-900/80 rounded px-1.5 py-0.5 border border-slate-700/60">
-              الاتجاه: نحو الأرض (Nadir)
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Orbit Selection (LEO, MEO, GEO, ALL) -->
-      <div class="glass-card rounded-xl p-2.5">
-        <span data-i18n="orbitSelectTitle" class="text-[11px] font-extrabold text-sky-400 block mb-1.5">
-          <i class="fa-solid fa-earth-americas"></i> اختيار المدار والارتفاع (LEO / MEO / GEO):
-        </span>
-        <div class="grid grid-cols-4 gap-1.5 mb-2">
-          <button onclick="selectOrbitPreset('LEO')" id="btn-orbit-LEO" class="orbit-btn active glass-card rounded-lg p-1.5 text-center border">
-            <span class="font-extrabold text-xs block">LEO</span>
-            <span class="text-[9px] text-emerald-300 mono-num">550km</span>
-          </button>
-          <button onclick="selectOrbitPreset('MEO')" id="btn-orbit-MEO" class="orbit-btn glass-card rounded-lg p-1.5 text-center border">
-            <span class="font-extrabold text-xs block">MEO</span>
-            <span class="text-[9px] text-amber-300 mono-num">20.2k</span>
-          </button>
-          <button onclick="selectOrbitPreset('GEO')" id="btn-orbit-GEO" class="orbit-btn glass-card rounded-lg p-1.5 text-center border">
-            <span class="font-extrabold text-xs block">GEO</span>
-            <span class="text-[9px] text-rose-300 mono-num">35.8k</span>
-          </button>
-          <button onclick="selectOrbitPreset('ALL')" id="btn-orbit-ALL" class="orbit-btn glass-card rounded-lg p-1.5 text-center border">
-            <span data-i18n="btnAllOrbits" class="font-extrabold text-xs block">الكل</span>
-            <span class="text-[9px] text-sky-300">3D</span>
-          </button>
-        </div>
-
-        <div class="flex justify-between items-center text-[11px] mb-1">
-          <span data-i18n="customAltLabel" class="text-slate-300 font-bold">الارتفاع (h):</span>
-          <span id="slider-alt-display" class="font-extrabold text-sky-400 mono-num">550 km</span>
-        </div>
-        <input type="range" id="altitude-slider" min="300" max="40000" step="10" value="550" class="w-full" oninput="onAltitudeSliderChange(this.value)">
-
-        <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-700/60">
-          <span data-i18n="simSpeedLabel" class="text-[11px] font-bold text-slate-400">سرعة الدوران:</span>
-          <div class="flex gap-1">
-            <button onclick="setSimSpeed(1, this)" class="sim-speed-btn active px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/30 text-sky-300 border border-sky-400">1x</button>
-            <button onclick="setSimSpeed(5, this)" class="sim-speed-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">5x</button>
-            <button onclick="setSimSpeed(15, this)" class="sim-speed-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">15x</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 5 Operational Modes -->
-      <div class="glass-card rounded-xl p-2.5">
-        <div class="flex items-center justify-between mb-1.5">
-          <span data-i18n="modesTitle" class="text-[11px] font-extrabold text-emerald-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-sliders"></i> أوضاع تشغيل القمر (5 Modes):
-          </span>
-          <span id="active-mode-watts" class="text-[11px] font-bold text-amber-300 mono-num">5.5 W</span>
-        </div>
-        <div class="grid grid-cols-1 gap-1">
-          <button onclick="setSatelliteMode('SAFE')" id="mode-btn-SAFE" class="mode-btn glass-card rounded-lg px-2.5 py-1 text-start border flex items-center justify-between">
-            <div>
-              <span data-i18n="modeSafe" class="text-[11px] font-bold block">1. وضع الأمان (Safe Mode)</span>
-              <span data-i18n="modeSafeSub" class="text-[9px] text-slate-400">أقل استهلاك + توجيه للشمس للشحن</span>
-            </div>
-            <span class="text-[11px] font-bold text-emerald-300 mono-num">2.5 W</span>
-          </button>
-          <button onclick="setSatelliteMode('NOMINAL')" id="mode-btn-NOMINAL" class="mode-btn active glass-card rounded-lg px-2.5 py-1 text-start border flex items-center justify-between">
-            <div>
-              <span data-i18n="modeNominal" class="text-[11px] font-bold block">2. الوضع الاسمي (Nominal Mode)</span>
-              <span data-i18n="modeNominalSub" class="text-[9px] text-slate-400">تشغيل الحاسوب والتوجيه بشكل متوازن</span>
-            </div>
-            <span class="text-[11px] font-bold text-sky-300 mono-num">5.5 W</span>
-          </button>
-          <button onclick="setSatelliteMode('PAYLOAD')" id="mode-btn-PAYLOAD" class="mode-btn glass-card rounded-lg px-2.5 py-1 text-start border flex items-center justify-between">
-            <div>
-              <span data-i18n="modePayload" class="text-[11px] font-bold block">3. وضع التصوير والحمولة (Imaging)</span>
-              <span data-i18n="modePayloadSub" class="text-[9px] text-slate-400">تشغيل الكاميرا وكافة المستشعرات</span>
-            </div>
-            <span class="text-[11px] font-bold text-amber-300 mono-num">14.5 W</span>
-          </button>
-          <button onclick="setSatelliteMode('DOWNLINK')" id="mode-btn-DOWNLINK" class="mode-btn glass-card rounded-lg px-2.5 py-1 text-start border flex items-center justify-between">
-            <div>
-              <span data-i18n="modeDownlink" class="text-[11px] font-bold block">4. وضع الإرسال للمحطة (Downlink)</span>
-              <span data-i18n="modeDownlinkSub" class="text-[9px] text-slate-400">بث البيانات والصور عبر S-Band</span>
-            </div>
-            <span class="text-[11px] font-bold text-purple-300 mono-num">11.0 W</span>
-          </button>
-          <button onclick="setSatelliteMode('THERMAL')" id="mode-btn-THERMAL" class="mode-btn glass-card rounded-lg px-2.5 py-1 text-start border flex items-center justify-between">
-            <div>
-              <span data-i18n="modeThermal" class="text-[11px] font-bold block">5. وضع التدفئة الحرارية (Thermal)</span>
-              <span data-i18n="modeThermalSub" class="text-[9px] text-slate-400">تشغيل السخانات لحماية البطاريات</span>
-            </div>
-            <span class="text-[11px] font-bold text-rose-300 mono-num">8.5 W</span>
+          <button id="btn-reset-speed" type="button" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">
+            ضبط السرعة
           </button>
         </div>
       </div>
-    </aside>
 
-    <!-- LEFT SIDE: Live Telemetry, Solar EPS, Battery & Thermal Heaters -->
-    <aside class="glass-panel rounded-2xl p-3 w-full lg:w-[390px] pointer-events-auto flex flex-col gap-2 max-h-[43vh] lg:max-h-[84vh] overflow-y-auto">
-      <div class="flex items-center justify-between border-b border-slate-700/70 pb-1.5">
-        <h2 id="hud-orbit-title" class="text-xs sm:text-sm font-extrabold text-white">المدار الأرضي المنخفض (LEO)</h2>
-        <span id="hud-sun-status" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/25 text-amber-300 border border-amber-400 flex items-center gap-1">
-          <i class="fa-solid fa-sun"></i> <span>ضوء الشمس (Sunlit)</span>
-        </span>
+      <div class="grid grid-cols-3 gap-1.5 pt-1 text-center">
+        <div class="bg-slate-950/70 rounded-lg p-2">
+          <div id="lbl-vel" class="text-[10px] text-slate-400">السرعة</div>
+          <div id="val-vel" class="text-xs font-mono font-bold text-emerald-300 mt-0.5">7.58 km/s</div>
+        </div>
+        <div class="bg-slate-950/70 rounded-lg p-2">
+          <div id="lbl-period" class="text-[10px] text-slate-400">زمن الدورة</div>
+          <div id="val-period" class="text-xs font-mono font-bold text-sky-300 mt-0.5">95.6 min</div>
+        </div>
+        <div class="bg-slate-950/70 rounded-lg p-2">
+          <div id="lbl-dist" class="text-[10px] text-slate-400">نصف القطر</div>
+          <div id="val-dist" class="text-xs font-mono font-bold text-purple-300 mt-0.5">6,921 km</div>
+        </div>
+      </div>
+
+      <p id="txt-orbit-note" class="text-[11px] leading-relaxed text-slate-300 bg-slate-950/50 p-2 rounded-lg">
+        مدار GEO متزامن استوائياً 1:1 مع دوران الأرض ليبقى ثابتاً فوق نفس نقطة خط الطول.
+      </p>
+    </div>
+
+    <!-- أوضاع التشغيل الخمسة -->
+    <div class="bg-slate-900/70 rounded-xl p-3 border border-slate-800 space-y-2">
+      <div id="lbl-modes" class="text-xs font-bold text-sky-300">أوضاع تشغيل القمر (Operational Modes)</div>
+      <div class="grid grid-cols-2 gap-1.5">
+        <button data-mode="SAFE" type="button" class="mode-btn text-right px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700">Safe Mode</button>
+        <button data-mode="NOMINAL" type="button" class="mode-btn text-right px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Nominal</button>
+        <button data-mode="IMAGING" type="button" class="mode-btn text-right px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700">Imaging</button>
+        <button data-mode="DOWNLINK" type="button" class="mode-btn text-right px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700">Downlink</button>
+        <button data-mode="THERMAL" type="button" class="mode-btn col-span-2 text-right px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700">Thermal Conditioning</button>
+      </div>
+      <div id="badge-iraq-pass" class="hidden text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-200">
+        عبور فوق العراق نشط — تشغيل الكاميرا وكامل الأنظمة
+      </div>
+    </div>
+
+    <!-- الطاقة والحرارة -->
+    <div class="bg-slate-900/70 rounded-xl p-3 border border-slate-800 space-y-2">
+      <div class="flex items-center justify-between">
+        <span id="lbl-power-thermal" class="text-xs font-bold text-amber-300">الطاقة والتحكم الحراري</span>
+        <span id="badge-heater" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold">السخانات: متوقفة</span>
       </div>
 
       <div class="grid grid-cols-3 gap-1.5 text-center">
-        <div class="glass-card rounded-xl p-2">
-          <p data-i18n="lblAltitude" class="text-[10px] text-slate-400">الارتفاع (h)</p>
-          <p id="hud-altitude" class="text-xs sm:text-sm font-extrabold text-sky-400 mono-num">550 km</p>
+        <div class="bg-slate-950/70 rounded-lg p-2">
+          <div id="lbl-solar-in" class="text-[10px] text-slate-400">الألواح الشمسية</div>
+          <div id="val-solar-in" class="text-xs font-mono font-bold text-amber-300 mt-0.5">+18.5 W</div>
         </div>
-        <div class="glass-card rounded-xl p-2">
-          <p data-i18n="lblVelocity" class="text-[10px] text-slate-400">السرعة المدارية</p>
-          <p id="hud-velocity" class="text-xs sm:text-sm font-extrabold text-amber-400 mono-num">7.59 km/s</p>
+        <div class="bg-slate-950/70 rounded-lg p-2">
+          <div id="lbl-load" class="text-[10px] text-slate-400">الاستهلاك</div>
+          <div id="val-load" class="text-xs font-mono font-bold text-rose-300 mt-0.5">-7.2 W</div>
         </div>
-        <div class="glass-card rounded-xl p-2">
-          <p data-i18n="lblPeriod" class="text-[10px] text-slate-400">زمن الدورة</p>
-          <p id="hud-period" class="text-xs sm:text-sm font-extrabold text-emerald-400 mono-num">95.6 min</p>
-        </div>
-      </div>
-
-      <!-- Solar EPS & Battery -->
-      <div class="glass-card rounded-xl p-2.5 border-sky-500/30">
-        <div class="flex items-center justify-between mb-1.5">
-          <span data-i18n="epsTitle" class="text-xs font-extrabold text-sky-300 flex items-center gap-1.5">
-            <i class="fa-solid fa-solar-panel"></i> نظام الطاقة (EPS): الشمس والاستهلاك
-          </span>
-          <span id="battery-soc-badge" class="text-xs font-extrabold text-emerald-400 mono-num">🔋 86%</span>
-        </div>
-
-        <div class="grid grid-cols-3 gap-1.5 text-center mb-1.5">
-          <div class="bg-slate-900/80 rounded-lg p-1.5 border border-amber-500/30">
-            <span data-i18n="lblSolarIn" class="text-[9px] text-slate-400 block">طاقة الألواح المستلمة</span>
-            <span id="val-solar-gen" class="text-xs sm:text-sm font-extrabold text-amber-400 mono-num">+18.6 W</span>
-          </div>
-          <div class="bg-slate-900/80 rounded-lg p-1.5 border border-rose-500/30">
-            <span data-i18n="lblPowerLoad" class="text-[9px] text-slate-400 block">الاستهلاك الكلي</span>
-            <span id="val-power-cons" class="text-xs sm:text-sm font-extrabold text-rose-400 mono-num">-5.5 W</span>
-          </div>
-          <div class="bg-slate-900/80 rounded-lg p-1.5 border border-emerald-500/30">
-            <span data-i18n="lblNetPower" class="text-[9px] text-slate-400 block">صافي الشحن</span>
-            <span id="val-net-power" class="text-xs sm:text-sm font-extrabold text-emerald-400 mono-num">+13.1 W</span>
-          </div>
-        </div>
-
-        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-          <div id="battery-bar" class="h-full bg-gradient-to-r from-emerald-500 to-sky-400 transition-all duration-200" style="width: 86%"></div>
-        </div>
-        <p id="eps-explanation-text" class="text-[10px] text-slate-300 mt-1.5 leading-relaxed">
-          الألواح الشمسية (GaAs) تستقبل أشعة الشمس الساطعة وتولد الطاقة وتغذي أنظمة القمر وتشحن البطاريات.
-        </p>
-      </div>
-
-      <!-- Thermal Control & Survival Heaters -->
-      <div class="glass-card rounded-xl p-2.5 border-rose-500/30">
-        <div class="flex items-center justify-between mb-1.5">
-          <span data-i18n="thermalTitle" class="text-xs font-extrabold text-rose-300 flex items-center gap-1.5">
-            <i class="fa-solid fa-temperature-half"></i> التحكم الحراري والتدفئة (Thermal Control)
-          </span>
-          <span id="heater-status-pill" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">السخانات: متوقفة</span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 text-center mb-1.5">
-          <div class="bg-slate-900/80 rounded-lg p-1.5">
-            <span data-i18n="lblExtTemp" class="text-[9px] text-slate-400 block">حرارة الهيكل الخارجي</span>
-            <span id="val-ext-temp" class="text-xs font-extrabold text-amber-300 mono-num">+42.0 °C</span>
-          </div>
-          <div class="bg-slate-900/80 rounded-lg p-1.5">
-            <span data-i18n="lblBatTemp" class="text-[9px] text-slate-400 block">حرارة البطاريات الداخلية</span>
-            <span id="val-int-temp" class="text-xs font-extrabold text-emerald-300 mono-num">+18.5 °C</span>
-          </div>
-        </div>
-
-        <p id="thermal-explanation-text" class="text-[10px] text-slate-300 leading-relaxed bg-slate-900/60 p-2 rounded-lg border border-slate-700/50">
-          في ضوء الشمس: يعكس العزل متعدد الطبقات (MLI الذهبي) الحرارة الزائدة. وعند دخول ظل الأرض البارد (-68°C)، تعمل السخانات الكهربائية الداخلية تلقائياً من البطارية لتدفئة البطاريات.
-        </p>
-      </div>
-    </aside>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- TAB 2: REALISTIC MULTI-STAGE LAUNCH & CUBESAT DEPLOYMENT              -->
-  <!-- ===================================================================== -->
-  <div id="panel-launch" class="hideable-ui ui-fade hidden fixed inset-x-3 bottom-8 top-16 z-10 pointer-events-none flex flex-col justify-between">
-    <div class="flex flex-wrap justify-between items-start gap-3">
-      <div class="glass-panel rounded-2xl p-3.5 w-full sm:w-80 pointer-events-auto flex flex-col gap-2.5">
-        <div class="flex items-center justify-between border-b border-slate-700/70 pb-1.5">
-          <span data-i18n="launchControlTitle" class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-shuttle-space"></i> غرفة التحكم بالإطلاق (Mission Control)
-          </span>
-          <span id="launch-status-pill" data-i18n="launchReady" class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">جاهز للإطلاق</span>
-        </div>
-
-        <div>
-          <label data-i18n="selectTargetOrbitLbl" class="text-xs font-bold text-slate-300 block mb-1.5">1. اختر المدار المستهدف لوضع الكيوب سات:</label>
-          <div class="grid grid-cols-3 gap-1.5">
-            <button onclick="setLaunchTarget('LEO')" id="launch-target-LEO" class="launch-target-btn active py-1.5 rounded-lg text-xs font-extrabold bg-sky-500/25 border border-sky-400 text-sky-300">LEO (550km)</button>
-            <button onclick="setLaunchTarget('MEO')" id="launch-target-MEO" class="launch-target-btn py-1.5 rounded-lg text-xs font-extrabold bg-slate-800/80 border border-slate-700 text-slate-300">MEO (20.2k)</button>
-            <button onclick="setLaunchTarget('GEO')" id="launch-target-GEO" class="launch-target-btn py-1.5 rounded-lg text-xs font-extrabold bg-slate-800/80 border border-slate-700 text-slate-300">GEO (35.8k)</button>
-          </div>
-        </div>
-
-        <div class="flex gap-2">
-          <button onclick="startLaunchSequence()" id="btn-start-launch" class="flex-1 py-2 px-4 rounded-xl font-extrabold text-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 transition">
-            <i class="fa-solid fa-fire"></i>
-            <span data-i18n="btnStartLaunch">ابدأ الإطلاق</span>
-          </button>
-          <button onclick="resetLaunchSequence()" title="Reset" class="py-2 px-3.5 rounded-xl font-bold text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 transition">
-            <i class="fa-solid fa-rotate-left"></i>
-          </button>
-        </div>
-
-        <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-700/60">
-          <span data-i18n="launchSpeedLbl" class="text-slate-400 font-medium">سرعة التسلسل:</span>
-          <div class="flex gap-1">
-            <button onclick="setLaunchSpeed(1, this)" class="launch-speed-btn active px-2.5 py-0.5 rounded bg-amber-500/25 border border-amber-400 text-amber-300 font-bold">1x</button>
-            <button onclick="setLaunchSpeed(2, this)" class="launch-speed-btn px-2.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-bold">2x</button>
-            <button onclick="setLaunchSpeed(4, this)" class="launch-speed-btn px-2.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-bold">4x</button>
-          </div>
+        <div class="bg-slate-950/70 rounded-lg p-2">
+          <div id="lbl-net" class="text-[10px] text-slate-400">الصافي</div>
+          <div id="val-net" class="text-xs font-mono font-bold text-emerald-300 mt-0.5">+11.3 W</div>
         </div>
       </div>
 
-      <div class="glass-panel rounded-2xl p-3.5 w-full sm:w-80 pointer-events-auto">
-        <p data-i18n="flightTelemetryTitle" class="text-[11px] font-bold text-sky-400 mb-2 flex items-center gap-1.5">
-          <i class="fa-solid fa-gauge-high"></i> قياسات الرحلة الحية (Flight Telemetry)
-        </p>
-        <div class="grid grid-cols-3 gap-1.5 text-center">
-          <div class="glass-card rounded-xl p-1.5">
-            <span data-i18n="lblCurrentAlt" class="text-[9px] text-slate-400 block">الارتفاع</span>
-            <span id="launch-alt-val" class="text-xs font-extrabold text-white mono-num">0 km</span>
-          </div>
-          <div class="glass-card rounded-xl p-1.5">
-            <span data-i18n="lblRocketVel" class="text-[9px] text-slate-400 block">السرعة</span>
-            <span id="launch-vel-val" class="text-xs font-extrabold text-amber-400 mono-num">0.00 km/s</span>
-          </div>
-          <div class="glass-card rounded-xl p-1.5">
-            <span data-i18n="lblGForce" class="text-[9px] text-slate-400 block">التسارع (G)</span>
-            <span id="launch-gforce-val" class="text-xs font-extrabold text-rose-400 mono-num">1.0 G</span>
-          </div>
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span id="lbl-batt" class="text-slate-300">شحن البطارية (Battery SoC)</span>
+          <span id="val-batt" class="font-mono font-bold text-emerald-300">84%</span>
         </div>
-        <div class="mt-2 bg-slate-900/85 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-300 flex items-center justify-between border border-slate-700/60">
-          <span data-i18n="lblPayloadState">حالة الكيوب سات:</span>
-          <span id="launch-payload-state" class="font-bold text-emerald-400">داخل حاضنة P-POD</span>
+        <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+          <div id="bar-batt" class="h-full bg-emerald-400 transition-all duration-300" style="width: 84%"></div>
         </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-1.5 text-center pt-1">
+        <div class="bg-slate-950/70 rounded-lg p-2">
+          <div id="lbl-temp-ext" class="text-[10px] text-slate-400">حرارة الهيكل</div>
+          <div id="val-temp-ext" class="text-xs font-mono font-bold text-sky-300 mt-0.5">+38.0 °C</div>
+        </div>
+        <div class="bg-slate-950/70 rounded-lg p-2">
+          <div id="lbl-temp-batt" class="text-[10px] text-slate-400">حرارة البطارية</div>
+          <div id="val-temp-batt" class="text-xs font-mono font-bold text-amber-200 mt-0.5">+22.0 °C</div>
+        </div>
+      </div>
+
+      <p id="txt-thermal-note" class="text-[11px] leading-relaxed text-slate-300 bg-slate-950/50 p-2 rounded-lg">
+        في البرودة والظل تعمل سخانات الكابتون (Kapton Heaters) مع عزل MLI لحماية بطاريات الليثيوم.
+      </p>
+    </div>
+  </aside>
+
+  <!-- لوحة التحكم بالوضعية وكاميرا القمر المباشرة (يمين في وضع المدارات) -->
+  <aside id="panel-orbit-right" class="fixed top-28 right-3 w-[290px] max-w-[90vw] z-20 glass rounded-2xl p-3.5 space-y-3">
+    <div class="flex items-center justify-between">
+      <span id="lbl-adcs-title" class="text-xs font-bold text-sky-300">التوجيه (ADCS) وكاميرا القمر</span>
+      <button id="btn-adcs-mode" type="button" class="text-[11px] px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/30 font-semibold">
+        يدوي
+      </button>
+    </div>
+
+    <!-- كاميرا القمر المباشرة -->
+    <div class="relative rounded-xl overflow-hidden border border-sky-500/30 bg-slate-950 h-32">
+      <canvas id="satcam-canvas" width="260" height="128" class="w-full h-full block"></canvas>
+      <div class="absolute top-1.5 left-2 text-[10px] font-mono bg-black/65 px-1.5 py-0.5 rounded text-emerald-300">
+        SAT-CAM LIVE
+      </div>
+      <div id="satcam-angles" class="absolute bottom-1.5 right-2 text-[10px] font-mono bg-black/65 px-1.5 py-0.5 rounded text-sky-200">
+        R:0° P:0° Y:0°
       </div>
     </div>
 
-    <div class="glass-panel rounded-2xl p-3 w-full max-w-4xl mx-auto pointer-events-auto">
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-        <span id="stage-title-text" class="text-xs sm:text-sm font-extrabold text-white">المرحلة 0: الصاروخ جاهز على منصة الإطلاق الأرضية</span>
-        <span id="stage-percent-text" class="text-xs font-bold text-sky-400 mono-num">0%</span>
+    <!-- أزرار Roll / Pitch / Yaw -->
+    <div class="space-y-2 text-xs">
+      <div class="flex items-center justify-between bg-slate-900/70 px-2.5 py-1.5 rounded-lg">
+        <span class="font-semibold text-slate-200">Roll (<span id="val-roll" class="font-mono text-sky-300">0°</span>)</span>
+        <div class="flex gap-1">
+          <button data-axis="roll" data-delta="-15" type="button" class="att-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-sky-500 hover:text-slate-950 font-bold">-</button>
+          <button data-axis="roll" data-delta="15" type="button" class="att-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-sky-500 hover:text-slate-950 font-bold">+</button>
+        </div>
       </div>
 
-      <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-2 border border-slate-700">
-        <div id="launch-progress-bar" class="h-full bg-gradient-to-r from-sky-400 via-blue-500 to-emerald-400 transition-all duration-150" style="width: 0%"></div>
+      <div class="flex items-center justify-between bg-slate-900/70 px-2.5 py-1.5 rounded-lg">
+        <span class="font-semibold text-slate-200">Pitch (<span id="val-pitch" class="font-mono text-sky-300">0°</span>)</span>
+        <div class="flex gap-1">
+          <button data-axis="pitch" data-delta="-15" type="button" class="att-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-sky-500 hover:text-slate-950 font-bold">-</button>
+          <button data-axis="pitch" data-delta="15" type="button" class="att-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-sky-500 hover:text-slate-950 font-bold">+</button>
+        </div>
       </div>
 
-      <div class="grid grid-cols-5 gap-1.5 text-center text-[10px] sm:text-xs">
-        <div id="step-0" class="stage-pill p-1.5 rounded-lg bg-sky-500/20 border border-sky-400 text-sky-300 font-bold">
-          <i class="fa-solid fa-tower-broadcast block mb-0.5"></i>
-          <span data-i18n="step0">0. المنصة</span>
+      <div class="flex items-center justify-between bg-slate-900/70 px-2.5 py-1.5 rounded-lg">
+        <span class="font-semibold text-slate-200">Yaw (<span id="val-yaw" class="font-mono text-sky-300">0°</span>)</span>
+        <div class="flex gap-1">
+          <button data-axis="yaw" data-delta="-15" type="button" class="att-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-sky-500 hover:text-slate-950 font-bold">-</button>
+          <button data-axis="yaw" data-delta="15" type="button" class="att-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-sky-500 hover:text-slate-950 font-bold">+</button>
         </div>
-        <div id="step-1" class="stage-pill p-1.5 rounded-lg bg-slate-800/70 border border-slate-700 text-slate-400">
-          <i class="fa-solid fa-fire-flame-curved block mb-0.5"></i>
-          <span data-i18n="step1">1. الإقلاع</span>
-        </div>
-        <div id="step-2" class="stage-pill p-1.5 rounded-lg bg-slate-800/70 border border-slate-700 text-slate-400">
-          <i class="fa-solid fa-arrows-split-up-and-left block mb-0.5"></i>
-          <span data-i18n="step2">2. فصل المرحلة 1</span>
-        </div>
-        <div id="step-3" class="stage-pill p-1.5 rounded-lg bg-slate-800/70 border border-slate-700 text-slate-400">
-          <i class="fa-solid fa-shield-halved block mb-0.5"></i>
-          <span data-i18n="step3">3. انفصال الغطاء</span>
-        </div>
-        <div id="step-4" class="stage-pill p-1.5 rounded-lg bg-slate-800/70 border border-slate-700 text-slate-400">
-          <i class="fa-solid fa-solar-panel block mb-0.5"></i>
-          <span data-i18n="step4">4. نشر الكيوب سات</span>
-        </div>
+      </div>
+
+      <button id="btn-reset-att" type="button" class="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs">
+        إعادة ضبط الوضعية
+      </button>
+    </div>
+  </aside>
+
+  <!-- لوحة محاكاة الإطلاق -->
+  <aside id="panel-launch" class="hidden fixed top-28 left-3 w-[320px] max-w-[92vw] z-20 glass rounded-2xl p-3.5 space-y-3">
+    <div id="lbl-launch-title" class="text-sm font-bold text-amber-300">محاكاة إطلاق ونشر الكيوب سات</div>
+    <div>
+      <label id="lbl-target-orbit" class="block text-xs text-slate-300 mb-1">المدار المستهدف</label>
+      <select id="launch-orbit-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+        <option value="LEO">LEO (550 km)</option>
+        <option value="MEO">MEO (20,200 km)</option>
+        <option value="GEO">GEO (35,786 km)</option>
+      </select>
+    </div>
+
+    <div class="flex gap-2">
+      <button id="btn-start-launch" type="button" class="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs">
+        بدء الإطلاق
+      </button>
+      <button id="btn-reset-launch" type="button" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs">
+        إعادة
+      </button>
+    </div>
+
+    <div class="bg-slate-900/70 rounded-xl p-2.5 border border-slate-800 space-y-1.5 text-xs">
+      <div class="flex justify-between">
+        <span id="lbl-stage" class="text-slate-400">المرحلة</span>
+        <span id="val-stage" class="font-bold text-sky-300">جاهز على المنصة</span>
+      </div>
+      <div class="flex justify-between">
+        <span id="lbl-l-alt" class="text-slate-400">الارتفاع</span>
+        <span id="val-l-alt" class="font-mono text-emerald-300">0 km</span>
+      </div>
+      <div class="flex justify-between">
+        <span id="lbl-l-vel" class="text-slate-400">السرعة</span>
+        <span id="val-l-vel" class="font-mono text-amber-300">0.00 km/s</span>
+      </div>
+      <div class="flex justify-between">
+        <span id="lbl-l-g" class="text-slate-400">التسارع (G)</span>
+        <span id="val-l-g" class="font-mono text-rose-300">1.0 G</span>
       </div>
     </div>
-  </div>
+  </aside>
 
-  <!-- ===================================================================== -->
-  <!-- TAB 3: 3U CUBESAT ANATOMY & RIGHT-SIDE DISASSEMBLY PANEL            -->
-  <!-- ===================================================================== -->
-  <div id="panel-anatomy" class="hideable-ui ui-fade hidden fixed inset-x-3 bottom-8 top-16 z-10 pointer-events-none flex flex-col lg:flex-row justify-between items-stretch lg:items-end gap-3">
+  <!-- قائمة تشريح وتفكيك الكيوب سات على اليمين -->
+  <aside id="panel-anatomy-right" class="hidden fixed top-28 right-3 bottom-3 w-[320px] max-w-[92vw] z-20 glass rounded-2xl p-3.5 overflow-y-auto custom-scroll space-y-3">
+    <div class="flex items-center justify-between gap-2">
+      <span id="lbl-anatomy-title" class="text-xs font-bold text-sky-300">تفكيك أجزاء 3U CubeSat</span>
+      <button id="btn-xray" type="button" class="text-[11px] px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">
+        هيكل شفاف
+      </button>
+    </div>
 
-    <!-- Right Disassembly Panel -->
-    <aside class="glass-panel rounded-2xl p-3.5 w-full lg:w-[370px] lg:ms-auto pointer-events-auto flex flex-col gap-2 max-h-[46vh] lg:max-h-[84vh] overflow-y-auto order-1">
-      <div class="flex items-center justify-between border-b border-slate-700/70 pb-2">
-        <span data-i18n="anatomyTitle" class="text-xs sm:text-sm font-extrabold text-amber-400 flex items-center gap-1.5">
-          <i class="fa-solid fa-screwdriver-wrench"></i> قائمة تفكيك أجزاء الكيوب سات (3U)
-        </span>
-      </div>
+    <div class="flex gap-1.5">
+      <button id="btn-explode-all" type="button" class="flex-1 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-xs font-semibold">
+        تفكيك الكل
+      </button>
+      <button id="btn-assemble-all" type="button" class="flex-1 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">
+        تجميع الكل
+      </button>
+    </div>
 
-      <div class="glass-card rounded-xl p-2.5 border-amber-500/40 flex flex-col gap-2">
-        <div class="grid grid-cols-2 gap-1.5">
-          <button onclick="toggleExplodedView()" id="btn-explode-toggle" class="py-1.5 px-2.5 rounded-lg text-xs font-extrabold bg-amber-500/25 text-amber-300 border border-amber-400 hover:bg-amber-500/35 flex items-center justify-center gap-1.5 transition">
-            <i class="fa-solid fa-expand"></i>
-            <span id="explode-btn-text" data-i18n="btnExplodeAll">تفكيك الكل</span>
-          </button>
-          <button onclick="toggleXRayFrame()" id="btn-xray-toggle" class="py-1.5 px-2.5 rounded-lg text-xs font-extrabold bg-sky-500/20 text-sky-300 border border-sky-400/60 hover:bg-sky-500/35 flex items-center justify-center gap-1.5 transition">
-            <i class="fa-solid fa-eye"></i>
-            <span id="xray-btn-text" data-i18n="btnXrayFrame">هيكل شفاف (X-Ray)</span>
-          </button>
-        </div>
+    <div id="parts-list" class="space-y-1.5"></div>
 
-        <div class="flex items-center gap-2">
-          <span data-i18n="explodeSliderLbl" class="text-[10px] text-slate-400 font-bold shrink-0">مسافة التفكيك:</span>
-          <input type="range" id="explode-slider" min="0" max="100" value="0" class="w-full" oninput="setGlobalExplodeFactor(this.value / 100)">
-        </div>
-      </div>
+    <div id="part-detail-card" class="bg-slate-900/80 rounded-xl p-3 border border-sky-500/30 space-y-1">
+      <div id="part-detail-name" class="text-xs font-bold text-amber-300">اختر قطعة لعرض تفاصيلها</div>
+      <p id="part-detail-desc" class="text-[11px] leading-relaxed text-slate-300">
+        اضغط على أي قطعة في القائمة لإخراجها أو إرجاعها وقراءة وظيفتها الهندسية في الكيوب سات.
+      </p>
+    </div>
+  </aside>
 
-      <div class="flex flex-col gap-1.5" id="subsystems-list-container"></div>
-    </aside>
-
-    <!-- Left Subsystem Specification Card -->
-    <aside class="glass-panel rounded-2xl p-4 w-full lg:w-[390px] pointer-events-auto flex flex-col gap-2.5 order-2">
-      <div class="flex items-center justify-between border-b border-slate-700/70 pb-2">
-        <span id="sub-detail-tag" class="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">القطعة #1</span>
-        <span id="sub-detail-eng" class="text-xs font-bold text-sky-400 mono-num">Al 6061-T6 3U</span>
-      </div>
-
-      <h2 id="sub-detail-title" class="text-sm sm:text-base font-extrabold text-white">الهيكل المعدني وقضبان التثبيت (Structure)</h2>
-
-      <p id="sub-detail-desc" class="text-xs text-slate-200 leading-relaxed bg-slate-900/80 p-3 rounded-xl border border-slate-700/60"></p>
-
-      <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
-        <div class="glass-card rounded-xl p-2">
-          <span data-i18n="lblStdSpec" class="text-[9px] text-slate-400 block">المعيار / الطراز</span>
-          <span id="sub-detail-spec" class="font-bold text-amber-300 text-[11px]">Al 6061-T6 (3U)</span>
-        </div>
-        <div class="glass-card rounded-xl p-2">
-          <span data-i18n="lblMassPower" class="text-[9px] text-slate-400 block">الوزن / الطاقة</span>
-          <span id="sub-detail-mass" class="font-bold text-sky-300 text-[11px] mono-num">320 g / 0 W</span>
-        </div>
-        <div class="glass-card rounded-xl p-2">
-          <span data-i18n="lblVitalRole" class="text-[9px] text-slate-400 block">الوظيفة الهندسية</span>
-          <span id="sub-detail-role" class="font-bold text-emerald-300 text-[11px]">الدعم والحماية</span>
-        </div>
-      </div>
-    </aside>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- THREE.JS SIMULATION ENGINE + SATELLITE CAM + ADCS + LAUNCH + ANATOMY -->
-  <!-- ===================================================================== -->
   <script>
-    const EARTH_RADIUS_KM = 6371.0;
-    const GM_EARTH = 398600.4418;
-    const VISUAL_EARTH_RADIUS = 5.0;
+    (function () {
+      'use strict';
 
-    function altitudeToVisualRadius(altKm) {
-      return VISUAL_EARTH_RADIUS + Math.pow(altKm / 1000, 0.62) * 0.78;
-    }
-
-    function calculateOrbitalPhysics(altKm) {
-      const r = EARTH_RADIUS_KM + altKm;
-      const velocityKmS = Math.sqrt(GM_EARTH / r);
-      const periodSec = 2 * Math.PI * Math.sqrt(Math.pow(r, 3) / GM_EARTH);
-      const periodMin = periodSec / 60.0;
-      const periodHrs = periodMin / 60.0;
-      return { velocityKmS, periodSec, periodMin, periodHrs };
-    }
-
-    let currentLang = 'ar';
-    const I18N = {
-      ar: {
-        designerCredit: 'تم التصميم بواسطة: حيدر حسن',
-        appTitle: 'محاكي مدارات الأقمار الصناعية والكيوب سات',
-        appSubtitle: 'LEO • MEO • GEO • الطاقة الشمسية • التحكم الحراري • CubeSat 3U',
-        tabOrbits: 'المدارات والطاقة',
-        tabLaunch: 'محاكاة الإطلاق',
-        tabAnatomy: 'تشريح الكيوب سات',
-        hideUI: 'إخفاء الواجهة',
-        showUI: 'إظهار الواجهة',
-        langBtn: 'EN',
-        iraqBannerTitle: '🛰️ القمر يعبر الآن فوق سماء العراق (Baghdad / Iraq Overpass)!',
-        iraqBannerDesc: 'تفعيل كامل الأنظمة والكاميرا البصرية عالية الدقة للتصوير — استهلاك الطاقة الأقصى (16.8 W)',
-        quickScenarioTitle: 'محاكاة فورية لحالة القمر في المدار:',
-        btnJumpSun: 'ضوء الشمس',
-        btnJumpEclipse: 'ظل الأرض',
-        btnJumpIraq: 'فوق العراق',
-        orbitAdcsTitle: 'تدوير القمر في المدار + كاميرا القمر',
-        btnRollShort: 'لفّ (Roll)',
-        btnPitchShort: 'ميلان (Pitch)',
-        btnYawShort: 'انعراج (Yaw)',
-        manualModeLbl: 'تحكم يدوي',
-        nadirModeLbl: 'نحو الأرض',
-        camNadirText: 'الاتجاه: نحو الأرض (Nadir)',
-        camHorizonText: 'الاتجاه: الأفق والغلاف الجوي',
-        camSpaceText: 'الاتجاه: الفضاء الخارجي',
-        camIraqText: '🎯 مصوّب نحو العراق (Iraq Target)',
-        modesTitle: 'أوضاع تشغيل القمر (5 Modes):',
-        modeSafe: '1. وضع الأمان (Safe Mode)',
-        modeSafeSub: 'أقل استهلاك + توجيه للشمس للشحن',
-        modeNominal: '2. الوضع الاسمي (Nominal Mode)',
-        modeNominalSub: 'تشغيل الحاسوب والتوجيه بشكل متوازن',
-        modePayload: '3. وضع التصوير والحمولة (Imaging)',
-        modePayloadSub: 'تشغيل الكاميرا وكافة المستشعرات',
-        modeDownlink: '4. وضع الإرسال للمحطة (Downlink)',
-        modeDownlinkSub: 'بث البيانات والصور عبر S-Band',
-        modeThermal: '5. وضع التدفئة الحرارية (Thermal)',
-        modeThermalSub: 'تشغيل السخانات لحماية البطاريات',
-        orbitSelectTitle: 'اختيار المدار والارتفاع (LEO / MEO / GEO):',
-        btnAllOrbits: 'الكل',
-        customAltLabel: 'الارتفاع (h):',
-        simSpeedLabel: 'سرعة الدوران:',
-        lblAltitude: 'الارتفاع (h)',
-        lblVelocity: 'السرعة المدارية',
-        lblPeriod: 'زمن الدورة',
-        epsTitle: 'نظام الطاقة (EPS): الشمس والاستهلاك',
-        lblSolarIn: 'طاقة الألواح المستلمة',
-        lblPowerLoad: 'الاستهلاك الكلي',
-        lblNetPower: 'صافي الشحن',
-        thermalTitle: 'التحكم الحراري والتدفئة (Thermal Control)',
-        lblExtTemp: 'حرارة الهيكل الخارجي',
-        lblBatTemp: 'حرارة البطاريات الداخلية',
-        launchControlTitle: 'غرفة التحكم بالإطلاق (Mission Control)',
-        launchReady: 'جاهز للإطلاق',
-        selectTargetOrbitLbl: '1. اختر المدار المستهدف لوضع الكيوب سات:',
-        btnStartLaunch: 'ابدأ الإطلاق',
-        launchSpeedLbl: 'سرعة التسلسل:',
-        flightTelemetryTitle: 'قياسات الرحلة الحية (Flight Telemetry)',
-        lblCurrentAlt: 'الارتفاع',
-        lblRocketVel: 'السرعة',
-        lblGForce: 'التسارع (G)',
-        lblPayloadState: 'حالة الكيوب سات:',
-        step0: '0. المنصة',
-        step1: '1. الإقلاع',
-        step2: '2. فصل المرحلة 1',
-        step3: '3. انفصال الغطاء',
-        step4: '4. نشر الكيوب سات',
-        anatomyTitle: 'قائمة تفكيك أجزاء الكيوب سات (3U)',
-        btnExplodeAll: 'تفكيك الكل',
-        btnAssembleAll: 'تجميع الكل',
-        btnXrayFrame: 'هيكل شفاف (X-Ray)',
-        explodeSliderLbl: 'مسافة التفكيك:',
-        lblStdSpec: 'المعيار / الطراز',
-        lblMassPower: 'الوزن / الطاقة',
-        lblVitalRole: 'الوظيفة الهندسية',
-        sunlitPill: 'ضوء الشمس (Sunlit)',
-        eclipsePill: 'ظل الأرض (Eclipse)',
-        heatersOn: 'السخانات: تعمل (+3.5W)',
-        heatersOff: 'السخانات: متوقفة'
-      },
-      en: {
-        designerCredit: 'Designed by: Haidar Hassan',
-        appTitle: 'Satellite Orbits & CubeSat Mission Simulator',
-        appSubtitle: 'LEO • MEO • GEO • Solar EPS • Thermal Control • CubeSat 3U',
-        tabOrbits: 'Orbits & Power',
-        tabLaunch: 'Launch Mission',
-        tabAnatomy: 'CubeSat Anatomy',
-        hideUI: 'Hide UI',
-        showUI: 'Show UI',
-        langBtn: 'عربي',
-        iraqBannerTitle: '🛰️ Satellite Passing Over Iraq (Baghdad / Iraq Overpass)!',
-        iraqBannerDesc: 'All subsystems & High-Res Optical Payload active for imaging — Peak Power Load (16.8 W)',
-        quickScenarioTitle: 'Instant Orbital Condition Jump:',
-        btnJumpSun: 'Sunlight',
-        btnJumpEclipse: 'Eclipse',
-        btnJumpIraq: 'Over Iraq',
-        orbitAdcsTitle: 'Orbit Attitude & Live Satellite Cam',
-        btnRollShort: 'Roll',
-        btnPitchShort: 'Pitch',
-        btnYawShort: 'Yaw',
-        manualModeLbl: 'Manual ADCS',
-        nadirModeLbl: 'Nadir Lock',
-        camNadirText: 'View: Earth Nadir',
-        camHorizonText: 'View: Earth Limb / Horizon',
-        camSpaceText: 'View: Deep Space',
-        camIraqText: '🎯 Aimed at Iraq Target',
-        modesTitle: 'Satellite Operational Modes (5 Modes):',
-        modeSafe: '1. Safe Mode',
-        modeSafeSub: 'Minimal load + Sun-pointing for charging',
-        modeNominal: '2. Nominal / Standby Mode',
-        modeNominalSub: 'Balanced OBC, ADCS & Telemetry',
-        modePayload: '3. Payload / Imaging Mode',
-        modePayloadSub: 'Optical camera & sensors active',
-        modeDownlink: '4. High-Speed Downlink Mode',
-        modeDownlinkSub: 'S-Band data transmission to ground',
-        modeThermal: '5. Thermal Conditioning Mode',
-        modeThermalSub: 'Active heaters protecting Li-Ion cells',
-        orbitSelectTitle: 'Select Orbit & Altitude (LEO / MEO / GEO):',
-        btnAllOrbits: 'All',
-        customAltLabel: 'Altitude (h):',
-        simSpeedLabel: 'Orbit Speed:',
-        lblAltitude: 'Altitude (h)',
-        lblVelocity: 'Orbital Velocity',
-        lblPeriod: 'Orbital Period',
-        epsTitle: 'Electrical Power (EPS): Solar & Load',
-        lblSolarIn: 'Solar Array Input',
-        lblPowerLoad: 'Total Load',
-        lblNetPower: 'Net Balance',
-        thermalTitle: 'Active & Passive Thermal Control',
-        lblExtTemp: 'External Chassis Temp',
-        lblBatTemp: 'Internal Battery Temp',
-        launchControlTitle: 'Launch Mission Control',
-        launchReady: 'Ready for Liftoff',
-        selectTargetOrbitLbl: '1. Select Target Orbit for CubeSat:',
-        btnStartLaunch: 'Start Launch',
-        launchSpeedLbl: 'Sequence Speed:',
-        flightTelemetryTitle: 'Live Flight Telemetry',
-        lblCurrentAlt: 'Altitude',
-        lblRocketVel: 'Velocity',
-        lblGForce: 'G-Force',
-        lblPayloadState: 'CubeSat Status:',
-        step0: '0. Launchpad',
-        step1: '1. Liftoff',
-        step2: '2. Stage 1 Sep',
-        step3: '3. Fairing Sep',
-        step4: '4. CubeSat Deploy',
-        anatomyTitle: 'CubeSat 3U Disassembly List',
-        btnExplodeAll: 'Explode All',
-        btnAssembleAll: 'Assemble All',
-        btnXrayFrame: 'X-Ray Chassis',
-        explodeSliderLbl: 'Explode Distance:',
-        lblStdSpec: 'Standard / Model',
-        lblMassPower: 'Mass / Power',
-        lblVitalRole: 'Engineering Role',
-        sunlitPill: 'Direct Sunlight',
-        eclipsePill: 'Earth Eclipse (Shadow)',
-        heatersOn: 'Heaters: ACTIVE (+3.5W)',
-        heatersOff: 'Heaters: STANDBY'
+      if (typeof THREE === 'undefined') {
+        document.body.innerHTML = '<div style="padding:24px;color:#fff;font-family:sans-serif;">تعذر تحميل مكتبة Three.js. يرجى التحقق من الاتصال بالإنترنت.</div>';
+        return;
       }
-    };
 
-    const SATELLITE_MODES = {
-      SAFE: { baseWatts: 2.5 },
-      NOMINAL: { baseWatts: 5.5 },
-      PAYLOAD: { baseWatts: 14.5 },
-      DOWNLINK: { baseWatts: 11.0 },
-      THERMAL: { baseWatts: 8.5 }
-    };
-
-    let isUIHidden = false;
-    let currentTab = 'orbits';
-    let simSpeed = 1;
-    let currentOrbitPreset = 'LEO';
-    let currentAltitudeKm = 550;
-    let orbitAngle = 0.3;
-    let earthRotationAngle = 0;
-
-    let isManualAttitude = true;
-    let orbitAttitudeDeg = { roll: 0, pitch: 0, yaw: 0 };
-    let holdRotateAxis = null;
-    let holdRotateDir = 0;
-
-    let activeSatelliteMode = 'NOMINAL';
-    let batterySoC = 86.0;
-    let extTempC = 38.0;
-    let intTempC = 18.5;
-    let isInSunlight = true;
-    let isOverIraq = false;
-    let prevInSunlight = null;
-    let prevOverIraq = null;
-    let prevAutoHeater = null;
-
-    let launchTarget = 'LEO';
-    let isLaunching = false;
-    let launchProgress = 0;
-    let launchSpeed = 1;
-
-    let globalExplodeFactor = 0;
-    let targetGlobalExplode = 0;
-    let isXRayMode = false;
-    let selectedSubsystemIndex = 0;
-    let individualPullStates = [false, false, false, false, false, false, false, false];
-    let currentPartPullFactors = [0, 0, 0, 0, 0, 0, 0, 0];
-
-    let scene, camera, renderer, controls;
-    let satCamRenderer, satCamPerspective;
-    let earthGroup, earthMesh, cloudsMesh, iraqBeaconGroup, shadowConeMesh;
-    let orbitsGroup, leoRing, meoRing, geoRing, customRing;
-    let activeSatGroup, satBodyMeshGroup, satCamLensCone, satThermalAura;
-    let leoSat, meoSat, geoSat;
-    let launchPadGroup, launchGroup, rocketStage1, rocketStage2, fairingLeft, fairingRight, launchCubeSat, flameMesh, stage2FlameMesh;
-    let anatomyCubeSatGroup, anatomyParts = {};
-
-    const clock = new THREE.Clock();
-
-    window.onload = function() {
-      try {
-        initThreeJS();
-        initSatellitePiPCamera();
-        createStarfield();
-        createRealisticEarthWithIraq();
-        createOrbitVisuals();
-        createRealisticLaunchSystem();
-        createHyperRealisticCubeSat();
-
-        renderSubsystemsList();
-        selectOrbitPreset('LEO');
-        selectSubsystem(0);
-        updateAttitudeReadouts();
-
-        window.addEventListener('resize', onWindowResize);
-        animate();
-      } catch (err) {
-        console.error('Simulator initialization error:', err);
-      }
-    };
-
-    function initThreeJS() {
       const container = document.getElementById('canvas-container');
-      scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x030712, 0.002);
-
-      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(0, 7.5, 16.5);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.22;
+      renderer.outputEncoding = THREE.sRGBEncoding;
       container.appendChild(renderer.domElement);
 
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.06;
-      controls.minDistance = 2.0;
-      controls.maxDistance = 65;
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, window.innerWidth / Math.max(window.innerHeight, 1), 0.1, 1000);
+      camera.position.set(0, 7.5, 16.5);
 
-      scene.add(new THREE.AmbientLight(0x334155, 0.95));
+      const ambientLight = new THREE.AmbientLight(0x94a3b8, 0.55);
+      scene.add(ambientLight);
 
-      const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.6);
-      sunLight.position.set(40, 5, 12);
+      const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.3);
+      sunLight.position.set(28, 8, 12);
       scene.add(sunLight);
 
-      const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.65);
-      rimLight.position.set(-25, -8, -15);
+      const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.5);
+      rimLight.position.set(-18, -10, -14);
       scene.add(rimLight);
-    }
 
-    function initSatellitePiPCamera() {
-      const pipBox = document.getElementById('sat-cam-container');
-      const w = pipBox.clientWidth || 140;
-      const h = pipBox.clientHeight || 128;
+      (function createStars() {
+        const starGeo = new THREE.BufferGeometry();
+        const count = 1400;
+        const positions = new Float32Array(count * 3);
+        for (let i = 0; i < count * 3; i += 3) {
+          const r = 140 + Math.random() * 160;
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2 * Math.random() - 1);
+          positions[i] = r * Math.sin(phi) * Math.cos(theta);
+          positions[i + 1] = r * Math.cos(phi);
+          positions[i + 2] = r * Math.sin(phi) * Math.sin(theta);
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const starMat = new THREE.PointsMaterial({ color: 0xe2e8f0, size: 0.55, transparent: true, opacity: 0.85 });
+        scene.add(new THREE.Points(starGeo, starMat));
+      })();
 
-      satCamPerspective = new THREE.PerspectiveCamera(55, w / h, 0.05, 500);
-      satCamRenderer = new THREE.WebGLRenderer({ antialias: true });
-      satCamRenderer.setSize(w, h);
-      satCamRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      satCamRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-      satCamRenderer.domElement.className = 'w-full h-full block';
-      pipBox.appendChild(satCamRenderer.domElement);
-    }
+      const MU = 398600.4418;
+      const R_EARTH_KM = 6371;
+      const EARTH_RADIUS = 3.2;
 
-    function createStarfield() {
-      const starsGeometry = new THREE.BufferGeometry();
-      const starCount = 3000;
-      const positions = new Float32Array(starCount * 3);
-      for (let i = 0; i < starCount; i++) {
-        const r = 120 + Math.random() * 240;
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-        positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-        positions[i * 3 + 2] = r * Math.cos(phi);
-      }
-      starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      scene.add(new THREE.Points(starsGeometry, new THREE.PointsMaterial({
-        color: 0xffffff, size: 0.55, transparent: true, opacity: 0.85
-      })));
-    }
-
-    function createRealisticEarthWithIraq() {
-      earthGroup = new THREE.Group();
-      scene.add(earthGroup);
-
-      const canvas = document.createElement('canvas');
-      canvas.width = 1024;
-      canvas.height = 512;
-      const ctx = canvas.getContext('2d');
-
-      const oceanGrad = ctx.createLinearGradient(0, 0, 0, 512);
-      oceanGrad.addColorStop(0, '#0c4a6e');
-      oceanGrad.addColorStop(0.5, '#0369a1');
-      oceanGrad.addColorStop(1, '#0c4a6e');
-      ctx.fillStyle = oceanGrad;
-      ctx.fillRect(0, 0, 1024, 512);
-
-      const drawContinent = (points, color = '#16a34a') => {
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(points[0][0], points[0][1]);
-        for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
-        ctx.closePath();
-        ctx.fill();
+      const ORBIT_PRESETS = {
+        LEO: { altKm: 550, radius: 4.35, tiltX: 0.16, tiltZ: 0.08, speedFactor: 0.55 },
+        MEO: { altKm: 20200, radius: 7.4, tiltX: 0.24, tiltZ: -0.06, speedFactor: 0.22 },
+        GEO: { altKm: 35786, radius: 10.2, tiltX: 0, tiltZ: 0, speedFactor: 0.09 }
       };
 
-      drawContinent([[470, 190], [540, 185], [575, 230], [560, 330], [520, 390], [495, 340], [460, 260]], '#22c55e');
-      drawContinent([[555, 180], [608, 195], [598, 242], [560, 235]], '#eab308');
+      const state = {
+        lang: 'ar',
+        hudHidden: false,
+        tab: 'orbit',
+        orbit: 'LEO',
+        altKm: 550,
+        speedMult: 1.0,
+        radialOffset: 0,
+        flightStatus: 'stable', // 'stable' | 'escaping' | 'falling' | 'crashed'
+        mode: 'NOMINAL',
+        adcsManual: false,
+        attitude: { roll: 0, pitch: 0, yaw: 0 },
+        battery: 84,
+        tempExt: 38,
+        tempBatt: 22,
+        heaterOn: false,
+        inSunlight: true,
+        overIraq: false,
+        orbitAngle: 0.4,
+        earthRot: 0,
+        launchActive: false,
+        launchProgress: 0,
+        launchOrbit: 'LEO',
+        xray: false,
+        partExploded: {},
+        selectedPartId: null
+      };
 
-      ctx.fillStyle = '#f59e0b';
-      ctx.beginPath();
-      ctx.arc(637, 162, 11, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      function createEarthTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
 
-      drawContinent([[465, 110], [545, 95], [565, 155], [510, 175], [470, 165]], '#16a34a');
-      drawContinent([[565, 95], [760, 90], [830, 165], [770, 250], [660, 255], [600, 195]], '#15803d');
-      drawContinent([[130, 95], [285, 85], [310, 165], [240, 225], [170, 190]], '#16a34a');
-      drawContinent([[255, 250], [330, 275], [315, 395], [275, 420], [250, 320]], '#22c55e');
-      drawContinent([[760, 310], [845, 315], [840, 380], [765, 375]], '#ca8a04');
+        const grad = ctx.createLinearGradient(0, 0, 0, 512);
+        grad.addColorStop(0, '#0c4a6e');
+        grad.addColorStop(0.5, '#0369a1');
+        grad.addColorStop(1, '#0c4a6e');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1024, 512);
 
-      ctx.fillStyle = '#f1f5f9';
-      ctx.fillRect(0, 0, 1024, 22);
-      ctx.fillRect(0, 490, 1024, 22);
+        ctx.strokeStyle = 'rgba(186, 230, 253, 0.12)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= 1024; x += 64) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
+        }
+        for (let y = 0; y <= 512; y += 64) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1024, y); ctx.stroke();
+        }
 
-      earthMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(VISUAL_EARTH_RADIUS, 64, 64),
-        new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(canvas), roughness: 0.65, metalness: 0.1 })
-      );
-      earthGroup.add(earthMesh);
+        ctx.fillStyle = '#2d6a4f';
+        ctx.beginPath();
+        ctx.ellipse(640, 195, 130, 68, -0.1, 0, Math.PI * 2);
+        ctx.fill();
 
-      iraqBeaconGroup = new THREE.Group();
-      const latRad = THREE.MathUtils.degToRad(33.3);
-      const lonRad = THREE.MathUtils.degToRad(44.4);
-      const phi = Math.PI / 2 - latRad;
-      const theta = lonRad + Math.PI;
-      iraqBeaconGroup.position.set(
-        -VISUAL_EARTH_RADIUS * Math.sin(phi) * Math.cos(theta),
-        VISUAL_EARTH_RADIUS * Math.cos(phi),
-        VISUAL_EARTH_RADIUS * Math.sin(phi) * Math.sin(theta)
-      );
-      iraqBeaconGroup.lookAt(0, 0, 0);
+        ctx.fillStyle = '#52796f';
+        ctx.beginPath();
+        ctx.ellipse(560, 295, 72, 92, 0.15, 0, Math.PI * 2);
+        ctx.fill();
 
-      const pinRing = new THREE.Mesh(
-        new THREE.RingGeometry(0.18, 0.34, 32),
-        new THREE.MeshBasicMaterial({ color: 0xfbbf24, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
-      );
-      const pinBeam = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.03, 0.22, 1.4, 16, 1, true),
-        new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide, transparent: true, opacity: 0.35 })
-      );
-      pinBeam.rotation.x = Math.PI / 2;
-      pinBeam.position.z = -0.7;
-      iraqBeaconGroup.add(pinRing, pinBeam);
-      earthMesh.add(iraqBeaconGroup);
+        ctx.fillStyle = '#40916c';
+        ctx.beginPath();
+        ctx.ellipse(250, 220, 95, 110, 0.2, 0, Math.PI * 2);
+        ctx.fill();
 
-      const cloudCanvas = document.createElement('canvas');
-      cloudCanvas.width = 512;
-      cloudCanvas.height = 256;
-      const cCtx = cloudCanvas.getContext('2d');
-      for (let i = 0; i < 160; i++) {
-        cCtx.fillStyle = `rgba(255, 255, 255, ${0.14 + Math.random() * 0.22})`;
-        cCtx.beginPath();
-        cCtx.ellipse(Math.random() * 512, 25 + Math.random() * 206, 12 + Math.random() * 35, 4 + Math.random() * 10, 0, 0, Math.PI * 2);
-        cCtx.fill();
+        const iraqX = ((44.0 + 180) / 360) * 1024;
+        const iraqY = ((90 - 33.2) / 180) * 512;
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(iraqX, iraqY, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        return new THREE.CanvasTexture(canvas);
       }
-      cloudsMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(VISUAL_EARTH_RADIUS * 1.015, 48, 48),
-        new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(cloudCanvas), transparent: true, opacity: 0.5, depthWrite: false })
+
+      const spaceGroup = new THREE.Group();
+      scene.add(spaceGroup);
+
+      const earthMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(EARTH_RADIUS, 48, 48),
+        new THREE.MeshStandardMaterial({
+          map: createEarthTexture(),
+          roughness: 0.72,
+          metalness: 0.05
+        })
       );
-      earthGroup.add(cloudsMesh);
+      spaceGroup.add(earthMesh);
 
-      const shadowGeo = new THREE.CylinderGeometry(VISUAL_EARTH_RADIUS * 0.98, VISUAL_EARTH_RADIUS * 0.98, 28, 32, 1, true);
-      shadowGeo.rotateZ(Math.PI / 2);
-      shadowConeMesh = new THREE.Mesh(shadowGeo, new THREE.MeshBasicMaterial({
-        color: 0x1e1b4b, transparent: true, opacity: 0.14, side: THREE.DoubleSide, depthWrite: false
-      }));
-      shadowConeMesh.position.set(-14, 0, 0);
-      scene.add(shadowConeMesh);
-    }
-
-    function createMiniSatelliteMesh(colorHex = 0x38bdf8, scale = 1, isMainControllable = false) {
-      const satGroup = new THREE.Group();
-      const bodyHolder = new THREE.Group();
-
-      const chassis = new THREE.Mesh(
-        new THREE.BoxGeometry(0.24 * scale, 0.24 * scale, 0.38 * scale),
-        new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.25 })
+      const atmoMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(EARTH_RADIUS * 1.025, 40, 40),
+        new THREE.MeshBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.14,
+          side: THREE.BackSide
+        })
       );
-      const wings = new THREE.Mesh(
-        new THREE.BoxGeometry(1.05 * scale, 0.02 * scale, 0.22 * scale),
-        new THREE.MeshStandardMaterial({ color: 0x1d4ed8, emissive: 0x0f172a, metalness: 0.6, roughness: 0.2 })
+      spaceGroup.add(atmoMesh);
+
+      const shadowCone = new THREE.Mesh(
+        new THREE.CylinderGeometry(EARTH_RADIUS * 0.96, EARTH_RADIUS * 1.15, 22, 32, 1, true),
+        new THREE.MeshBasicMaterial({
+          color: 0x1d4ed8,
+          transparent: true,
+          opacity: 0.14,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        })
       );
-      bodyHolder.add(chassis, wings);
+      shadowCone.rotation.z = Math.PI / 2;
+      shadowCone.position.set(-11, 0, 0);
+      spaceGroup.add(shadowCone);
 
-      if (isMainControllable) {
-        satBodyMeshGroup = bodyHolder;
+      const orbitRings = {};
+      ['LEO', 'MEO', 'GEO'].forEach((key) => {
+        const preset = ORBIT_PRESETS[key];
+        const pts = [];
+        const segs = 128;
+        for (let i = 0; i <= segs; i++) {
+          const a = (i / segs) * Math.PI * 2;
+          pts.push(new THREE.Vector3(Math.cos(a) * preset.radius, 0, Math.sin(a) * preset.radius));
+        }
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        const colors = { LEO: 0x38bdf8, MEO: 0xa855f7, GEO: 0xf59e0b };
+        const mat = new THREE.LineBasicMaterial({ color: colors[key], transparent: true, opacity: 0.65 });
+        const line = new THREE.Line(geo, mat);
+        line.rotation.x = preset.tiltX;
+        line.rotation.z = preset.tiltZ;
+        spaceGroup.add(line);
+        orbitRings[key] = line;
+      });
 
+      function buildCubeSat(scale = 0.34) {
+        const root = new THREE.Group();
+        root.scale.setScalar(scale);
+
+        const partsMap = {};
+        const trackedMeshes = [];
+
+        function registerPart(id, group) {
+          partsMap[id] = {
+            group,
+            basePos: group.position.clone()
+          };
+          group.traverse((child) => {
+            if (child.isMesh && child.material) {
+              child.material = child.material.clone();
+              trackedMeshes.push({
+                mesh: child,
+                origOpacity: child.material.opacity !== undefined ? child.material.opacity : 1,
+                origTransparent: !!child.material.transparent
+              });
+            }
+          });
+          root.add(group);
+        }
+
+        const structGroup = new THREE.Group();
+        const railMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.25 });
+        const railGeo = new THREE.BoxGeometry(0.12, 3.0, 0.12);
+        [[-0.45, -0.45], [0.45, -0.45], [-0.45, 0.45], [0.45, 0.45]].forEach(([x, z]) => {
+          const m = new THREE.Mesh(railGeo, railMat);
+          m.position.set(x, 0, z);
+          structGroup.add(m);
+        });
+        const plateGeo = new THREE.BoxGeometry(0.96, 0.06, 0.96);
+        [-1.47, 1.47].forEach((y) => {
+          const p = new THREE.Mesh(plateGeo, railMat);
+          p.position.set(0, y, 0);
+          structGroup.add(p);
+        });
+        registerPart('structure', structGroup);
+
+        const epsGroup = new THREE.Group();
+        const panelMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, metalness: 0.5, roughness: 0.3 });
+        const leftPanel = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.04, 0.82), panelMat);
+        leftPanel.position.set(-1.35, 0, 0);
+        const rightPanel = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.04, 0.82), panelMat);
+        rightPanel.position.set(1.35, 0, 0);
+        const battMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.68, 0.45, 0.68),
+          new THREE.MeshStandardMaterial({ color: 0x10b981, metalness: 0.3, roughness: 0.5 })
+        );
+        battMesh.position.set(0, -0.65, 0);
+        epsGroup.add(leftPanel, rightPanel, battMesh);
+        registerPart('eps', epsGroup);
+
+        const obcGroup = new THREE.Group();
+        const obcBoard = new THREE.Mesh(
+          new THREE.BoxGeometry(0.76, 0.08, 0.76),
+          new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.4 })
+        );
+        const mcuChip = new THREE.Mesh(
+          new THREE.BoxGeometry(0.26, 0.08, 0.26),
+          new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.3 })
+        );
+        mcuChip.position.set(0, 0.07, 0);
+        obcGroup.add(obcBoard, mcuChip);
+        obcGroup.position.set(0, 0.35, 0);
+        registerPart('obc', obcGroup);
+
+        const adcsGroup = new THREE.Group();
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.2 });
+        const wheelX = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.1, 24), wheelMat);
+        wheelX.rotation.z = Math.PI / 2;
+        const wheelY = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.1, 24), wheelMat);
+        const wheelZ = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.1, 24), wheelMat);
+        wheelZ.rotation.x = Math.PI / 2;
+        adcsGroup.add(wheelX, wheelY, wheelZ);
+        adcsGroup.position.set(0, -0.15, 0);
+        registerPart('adcs', adcsGroup);
+
+        const commsGroup = new THREE.Group();
+        const antMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.2 });
+        const ant1 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.1, 10), antMat);
+        ant1.position.set(0.35, 2.0, 0.35);
+        ant1.rotation.z = -0.25;
+        const ant2 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.1, 10), antMat);
+        ant2.position.set(-0.35, 2.0, -0.35);
+        ant2.rotation.z = 0.25;
+        commsGroup.add(ant1, ant2);
+        registerPart('comms', commsGroup);
+
+        const payloadGroup = new THREE.Group();
         const lensBarrel = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.06 * scale, 0.07 * scale, 0.14 * scale, 16),
-          new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.2 })
+          new THREE.CylinderGeometry(0.24, 0.24, 0.45, 24),
+          new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.3 })
         );
         lensBarrel.rotation.x = Math.PI / 2;
-        lensBarrel.position.set(0, 0, 0.24 * scale);
-
-        const coneGeo = new THREE.ConeGeometry(0.22 * scale, 0.85 * scale, 20, 1, true);
-        coneGeo.rotateX(Math.PI / 2);
-        satCamLensCone = new THREE.Mesh(coneGeo, new THREE.MeshBasicMaterial({
-          color: 0x38bdf8, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false
-        }));
-        satCamLensCone.position.set(0, 0, 0.72 * scale);
-
-        bodyHolder.add(lensBarrel, satCamLensCone);
-
-        satThermalAura = new THREE.Mesh(
-          new THREE.SphereGeometry(0.55 * scale, 20, 20),
-          new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.2 })
+        lensBarrel.position.set(0, 0.9, 0.55);
+        const lensGlass = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.18, 0.18, 0.05, 24),
+          new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.9, roughness: 0.1 })
         );
-        satGroup.add(satThermalAura);
+        lensGlass.rotation.x = Math.PI / 2;
+        lensGlass.position.set(0, 0.9, 0.78);
+        payloadGroup.add(lensBarrel, lensGlass);
+        registerPart('payload', payloadGroup);
+
+        return {
+          root,
+          partsMap,
+          trackedMeshes,
+          wheels: { wheelX, wheelY, wheelZ }
+        };
       }
 
-      satGroup.add(bodyHolder);
+      const satOrbital = buildCubeSat(0.35);
+      spaceGroup.add(satOrbital.root);
 
-      const beacon = new THREE.Mesh(
-        new THREE.RingGeometry(0.34 * scale, 0.4 * scale, 24),
-        new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
+      const satAnatomy = buildCubeSat(1.15);
+      satAnatomy.root.visible = false;
+      scene.add(satAnatomy.root);
+
+      const rocketGroup = new THREE.Group();
+      const stage1 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.22, 0.22, 1.4, 20),
+        new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.4, roughness: 0.4 })
       );
-      beacon.rotation.x = Math.PI / 2;
-      satGroup.add(beacon);
-
-      return satGroup;
-    }
-
-    function createOrbitRingMesh(radius, colorHex, opacity = 0.75) {
-      const points = [];
-      for (let i = 0; i <= 180; i++) {
-        const theta = (i / 180) * Math.PI * 2;
-        points.push(new THREE.Vector3(Math.cos(theta) * radius, 0, Math.sin(theta) * radius));
-      }
-      return new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(points),
-        new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity })
+      stage1.position.y = -0.5;
+      const stage2 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.18, 0.2, 0.8, 20),
+        new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.4, roughness: 0.4 })
       );
-    }
-
-    function createOrbitVisuals() {
-      orbitsGroup = new THREE.Group();
-      scene.add(orbitsGroup);
-
-      const rLEO = altitudeToVisualRadius(550);
-      const rMEO = altitudeToVisualRadius(20200);
-      const rGEO = altitudeToVisualRadius(35786);
-
-      leoRing = createOrbitRingMesh(rLEO, 0x34d399, 0.85);
-      meoRing = createOrbitRingMesh(rMEO, 0xfbbf24, 0.75);
-      geoRing = createOrbitRingMesh(rGEO, 0xfb7185, 0.75);
-
-      leoRing.rotation.set(0, 0, THREE.MathUtils.degToRad(26));
-      meoRing.rotation.set(0, 0, THREE.MathUtils.degToRad(50));
-      geoRing.rotation.set(0, 0, 0);
-
-      orbitsGroup.add(leoRing, meoRing, geoRing);
-
-      leoSat = createMiniSatelliteMesh(0x34d399, 0.95, false);
-      meoSat = createMiniSatelliteMesh(0xfbbf24, 1.15, false);
-      geoSat = createMiniSatelliteMesh(0xfb7185, 1.3, false);
-
-      leoRing.add(leoSat);
-      meoRing.add(meoSat);
-      geoRing.add(geoSat);
-
-      customRing = createOrbitRingMesh(rLEO, 0x38bdf8, 0.9);
-      customRing.rotation.set(0, 0, THREE.MathUtils.degToRad(24));
-      orbitsGroup.add(customRing);
-
-      activeSatGroup = createMiniSatelliteMesh(0x38bdf8, 1.35, true);
-      customRing.add(activeSatGroup);
-    }
-
-    function createRealisticLaunchSystem() {
-      launchPadGroup = new THREE.Group();
-      launchPadGroup.position.set(0, VISUAL_EARTH_RADIUS, 0);
-      launchPadGroup.visible = false;
-      scene.add(launchPadGroup);
-
-      const padBase = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.45, 0.55, 0.14, 24),
-        new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8 })
+      stage2.position.y = 0.55;
+      const fairing = new THREE.Mesh(
+        new THREE.ConeGeometry(0.2, 0.65, 20),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.5, roughness: 0.3 })
       );
-      const tower = new THREE.Mesh(
-        new THREE.BoxGeometry(0.14, 1.85, 0.14),
-        new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.6, roughness: 0.4 })
+      fairing.position.y = 1.25;
+      const flame = new THREE.Mesh(
+        new THREE.ConeGeometry(0.18, 0.75, 16),
+        new THREE.MeshBasicMaterial({ color: 0xf97316 })
       );
-      tower.position.set(-0.32, 0.92, 0);
-      launchPadGroup.add(padBase, tower);
+      flame.rotation.x = Math.PI;
+      flame.position.y = -1.55;
+      rocketGroup.add(stage1, stage2, fairing, flame);
+      rocketGroup.visible = false;
+      spaceGroup.add(rocketGroup);
 
-      launchGroup = new THREE.Group();
-      launchGroup.visible = false;
-      scene.add(launchGroup);
+      const CUBE_PARTS = [
+        {
+          id: 'structure',
+          arName: 'الهيكل المعدني (6061-T6 Frame)',
+          enName: 'Aluminum Chassis & Rails',
+          offset: [0, 0, -1.6],
+          arDesc: 'هيكل ألمنيوم خفيف ومتين بأبعاد قياسية 10×10×30 سم لـ 3U CubeSat مع قضبان التثبيت في حاضنة الإطلاق.',
+          enDesc: 'Standard 3U (10×10×30 cm) CNC aluminum structure with deployment rails.'
+        },
+        {
+          id: 'eps',
+          arName: 'الألواح والبطاريات (EPS & Battery)',
+          enName: 'Solar Panels & EPS Battery',
+          offset: [0, -1.5, 0],
+          arDesc: 'تولّد الطاقة الكهربائية من أشعة الشمس وتخزنها في بطاريات الليثيوم لتشغيل الأنظمة أثناء الظل.',
+          enDesc: 'Harvests solar power and regulates battery charge/discharge across sunlight and eclipse.'
+        },
+        {
+          id: 'obc',
+          arName: 'حاسوب القيادة (OBC)',
+          enName: 'On-Board Computer',
+          offset: [0, 1.5, 0],
+          arDesc: 'العقل المدبر للقمر لإدارة المهام، جدولة الأوضاع، ومراقبة صحة الأنظمة الفرعية.',
+          enDesc: 'Executes flight software, mode transitions, and telemetry health monitoring.'
+        },
+        {
+          id: 'adcs',
+          arName: 'عجلات رد الفعل (ADCS Reaction Wheels)',
+          enName: 'ADCS Reaction Wheels',
+          offset: [1.6, 0, 0],
+          arDesc: 'تتحكم بتدوير القمر وتوجيهه (Roll, Pitch, Yaw) بالاعتماد على حفظ الزخم الزاوي بدون استهلاك وقود.',
+          enDesc: 'Controls 3-axis attitude (Roll, Pitch, Yaw) using conservation of angular momentum.'
+        },
+        {
+          id: 'comms',
+          arName: 'نظام الاتصالات (UHF/S-Band)',
+          enName: 'Communications & Antennas',
+          offset: [-1.6, 0, 0],
+          arDesc: 'يرسل البيانات والصور إلى المحطات الأرضية ويستقبل الأوامر من مركز التحكم.',
+          enDesc: 'Downlinks telemetry and payload data and receives ground station commands.'
+        },
+        {
+          id: 'payload',
+          arName: 'الحمولة العلمية (Optical Camera)',
+          enName: 'Earth Observation Payload',
+          offset: [0, 0, 1.6],
+          arDesc: 'كاميرا رصد أرضي لالتقاط الصور أثناء العبور فوق المناطق المستهدفة مثل العراق.',
+          enDesc: 'Optical imaging payload capturing Earth observations during passes such as over Iraq.'
+        }
+      ];
 
-      rocketStage1 = new THREE.Group();
-      const s1Body = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.13, 0.14, 1.25, 32),
-        new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.35, roughness: 0.28 })
-      );
-      rocketStage1.add(s1Body);
-
-      const flameGeo = new THREE.ConeGeometry(0.16, 0.85, 20);
-      flameGeo.rotateX(Math.PI);
-      flameMesh = new THREE.Mesh(flameGeo, new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.92 }));
-      flameMesh.position.y = -1.05;
-      flameMesh.visible = false;
-      rocketStage1.add(flameMesh);
-      launchGroup.add(rocketStage1);
-
-      rocketStage2 = new THREE.Group();
-      const s2Body = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.125, 0.13, 0.55, 32),
-        new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.4, roughness: 0.3 })
-      );
-      const s2FlameGeo = new THREE.ConeGeometry(0.11, 0.55, 16);
-      s2FlameGeo.rotateX(Math.PI);
-      stage2FlameMesh = new THREE.Mesh(s2FlameGeo, new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 }));
-      stage2FlameMesh.position.y = -0.58;
-      stage2FlameMesh.visible = false;
-      rocketStage2.add(s2Body, stage2FlameMesh);
-      rocketStage2.position.y = 1.02;
-      launchGroup.add(rocketStage2);
-
-      const fairingMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.25, roughness: 0.3, side: THREE.DoubleSide });
-      fairingLeft = new THREE.Group();
-      fairingLeft.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.135, 0.62, 20, 1, false, 0, Math.PI), fairingMat));
-      fairingLeft.position.set(0, 1.6, 0);
-
-      fairingRight = new THREE.Group();
-      fairingRight.add(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.135, 0.62, 20, 1, false, Math.PI, Math.PI), fairingMat));
-      fairingRight.position.set(0, 1.6, 0);
-      launchGroup.add(fairingLeft, fairingRight);
-
-      launchCubeSat = new THREE.Group();
-      launchCubeSat.position.set(0, 1.52, 0);
-      launchCubeSat.add(new THREE.Mesh(
-        new THREE.BoxGeometry(0.11, 0.26, 0.11),
-        new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.2 })
-      ));
-
-      const panelGeo = new THREE.BoxGeometry(0.38, 0.20, 0.012);
-      const panelMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.65, roughness: 0.2 });
-
-      const leftPanelPivot = new THREE.Group();
-      leftPanelPivot.position.set(-0.055, 0, 0);
-      const leftPanel = new THREE.Mesh(panelGeo, panelMat);
-      leftPanel.position.set(-0.19, 0, 0);
-      leftPanelPivot.add(leftPanel);
-      leftPanelPivot.rotation.z = -Math.PI / 2;
-
-      const rightPanelPivot = new THREE.Group();
-      rightPanelPivot.position.set(0.055, 0, 0);
-      const rightPanel = new THREE.Mesh(panelGeo, panelMat);
-      rightPanel.position.set(0.19, 0, 0);
-      rightPanelPivot.add(rightPanel);
-      rightPanelPivot.rotation.z = Math.PI / 2;
-
-      launchCubeSat.userData.leftPanelPivot = leftPanelPivot;
-      launchCubeSat.userData.rightPanelPivot = rightPanelPivot;
-      launchCubeSat.add(leftPanelPivot, rightPanelPivot);
-      launchGroup.add(launchCubeSat);
-    }
-
-    function createSolarCellTexture() {
-      const c = document.createElement('canvas');
-      c.width = 256;
-      c.height = 512;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, 256, 512);
-      for (let row = 0; row < 6; row++) {
-        const y = 8 + row * 84;
-        ctx.fillStyle = '#1d4ed8';
-        ctx.fillRect(12, y, 232, 80);
-        ctx.fillStyle = '#cbd5e1';
-        ctx.fillRect(65, y, 3, 80);
-        ctx.fillRect(188, y, 3, 80);
-      }
-      return new THREE.CanvasTexture(c);
-    }
-
-    function createPCBTexture(baseColor = '#065f46') {
-      const c = document.createElement('canvas');
-      c.width = 256;
-      c.height = 256;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = baseColor;
-      ctx.fillRect(0, 0, 256, 256);
-      ctx.strokeStyle = '#fbbf24';
-      ctx.lineWidth = 2;
-      for (let i = 16; i < 240; i += 24) {
-        ctx.beginPath();
-        ctx.moveTo(16, i);
-        ctx.lineTo(240, i);
-        ctx.stroke();
-      }
-      return new THREE.CanvasTexture(c);
-    }
-
-    function createHyperRealisticCubeSat() {
-      anatomyCubeSatGroup = new THREE.Group();
-      anatomyCubeSatGroup.visible = false;
-      scene.add(anatomyCubeSatGroup);
-
-      const solarTex = createSolarCellTexture();
-      const greenPcbTex = createPCBTexture('#065f46');
-      const bluePcbTex = createPCBTexture('#1e3a8a');
-
-      const frameGroup = new THREE.Group();
-      const railMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.88, roughness: 0.22, transparent: true, opacity: 1.0 });
-      const darkAnodizedMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3, transparent: true, opacity: 1.0 });
-      [[-0.48, -0.48], [0.48, -0.48], [-0.48, 0.48], [0.48, 0.48]].forEach(([rx, rz]) => {
-        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.085, 3.40, 0.085), railMat);
-        rail.position.set(rx, 0, rz);
-        frameGroup.add(rail);
-      });
-      [-1.66, -0.55, 0.55, 1.66].forEach(ry => {
-        const rib = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.06, 1.02), darkAnodizedMat);
-        rib.position.y = ry;
-        frameGroup.add(rib);
-      });
-      anatomyParts[0] = { group: frameGroup, materials: [railMat, darkAnodizedMat] };
-      anatomyCubeSatGroup.add(frameGroup);
-
-      const solarGroup = new THREE.Group();
-      const cellMat = new THREE.MeshStandardMaterial({ map: solarTex, metalness: 0.65, roughness: 0.18 });
-      const makeWing = (s) => {
-        const w = new THREE.Mesh(new THREE.BoxGeometry(1.15, 3.15, 0.025), cellMat);
-        w.position.set(s * 1.12, 0, 0);
-        return w;
+      const I18N = {
+        ar: {
+          appTitle: 'محاكي مدارات الأقمار الصناعية والكيوب سات',
+          eyeShow: 'إظهار الواجهة',
+          eyeHide: 'إخفاء الواجهة',
+          langBtn: 'English',
+          tabOrbit: 'المدارات والطاقة',
+          tabLaunch: 'محاكاة الإطلاق',
+          tabAnatomy: 'تشريح الكيوب سات',
+          quickJump: 'قفز سريع لحالة القمر',
+          jumpSun: 'ضوء الشمس',
+          jumpEclipse: 'ظل الأرض',
+          jumpIraq: 'فوق العراق',
+          orbitSelect: 'اختيار المدار',
+          allBtn: 'الكل',
+          sunBadge: 'شمس ساطعة',
+          eclipseBadge: 'ظل الأرض',
+          altLabel: 'الارتفاع (Altitude)',
+          manualSpeed: 'التحكم اليدوي بالسرعة',
+          resetSpeed: 'ضبط السرعة',
+          stateStable: 'مدار مستقر',
+          stateEscaping: 'خروج من المدار (إفلات)',
+          stateFalling: 'هبوط وسقوط نحو الأرض',
+          stateCrashed: 'اصطدام / سقوط على الأرض',
+          velLabel: 'السرعة',
+          periodLabel: 'زمن الدورة',
+          distLabel: 'نصف القطر',
+          modesTitle: 'أوضاع تشغيل القمر (Operational Modes)',
+          iraqPass: 'عبور فوق العراق نشط — تشغيل الكاميرا وكامل الأنظمة',
+          powerThermal: 'الطاقة والتحكم الحراري',
+          heaterOn: 'السخانات: تعمل (+3.5W)',
+          heaterOff: 'السخانات: متوقفة',
+          solarIn: 'الألواح الشمسية',
+          loadLabel: 'الاستهلاك',
+          netLabel: 'الصافي',
+          battLabel: 'شحن البطارية (Battery SoC)',
+          tempExt: 'حرارة الهيكل',
+          tempBatt: 'حرارة البطارية',
+          adcsTitle: 'التوجيه (ADCS) وكاميرا القمر',
+          manualBtn: 'يدوي',
+          autoBtn: 'تلقائي',
+          resetAtt: 'إعادة ضبط الوضعية',
+          launchTitle: 'محاكاة إطلاق ونشر الكيوب سات',
+          targetOrbit: 'المدار المستهدف',
+          startLaunch: 'بدء الإطلاق',
+          resetLaunch: 'إعادة',
+          stageLabel: 'المرحلة',
+          stageReady: 'جاهز على المنصة',
+          stage1: 'المرحلة 1: الإقلاع والصعود',
+          stage2: 'المرحلة 2: انفصال المعزز',
+          stageDeploy: 'نشر الكيوب سات في المدار',
+          stageDone: 'مستقر في المدار',
+          lAlt: 'الارتفاع',
+          lVel: 'السرعة',
+          lG: 'التسارع (G)',
+          anatomyTitle: 'تفكيك أجزاء 3U CubeSat',
+          xrayBtn: 'هيكل شفاف',
+          explodeAll: 'تفكيك الكل',
+          assembleAll: 'تجميع الكل',
+          extractBtn: 'إخراج / إرجاع',
+          geoNote: 'مدار GEO متزامن استوائياً 1:1 مع دوران الأرض ليبقى ثابتاً فوق نفس نقطة خط الطول.',
+          generalNote: 'زيادة السرعة فوق الحد المداري تخرجه نحو الفضاء، ونقصانها يسبّب سقوطه نحو الأرض.',
+          thermalNote: 'في البرودة والظل تعمل سخانات الكابتون (Kapton Heaters) مع عزل MLI لحماية بطاريات الليثيوم.'
+        },
+        en: {
+          appTitle: '3D Orbital & CubeSat Simulator',
+          eyeShow: 'Show UI',
+          eyeHide: 'Hide UI',
+          langBtn: 'عربي',
+          tabOrbit: 'Orbits & Power',
+          tabLaunch: 'Launch Sim',
+          tabAnatomy: 'CubeSat Anatomy',
+          quickJump: 'Quick State Jump',
+          jumpSun: 'Sunlight',
+          jumpEclipse: 'Eclipse',
+          jumpIraq: 'Over Iraq',
+          orbitSelect: 'Orbit Selection',
+          allBtn: 'All',
+          sunBadge: 'Sunlight',
+          eclipseBadge: 'Eclipse',
+          altLabel: 'Altitude',
+          manualSpeed: 'Manual Speed Control',
+          resetSpeed: 'Reset Speed',
+          stateStable: 'Stable Orbit',
+          stateEscaping: 'Escaping Orbit',
+          stateFalling: 'Orbital Decay / Falling',
+          stateCrashed: 'Impact / Re-entry on Earth',
+          velLabel: 'Velocity',
+          periodLabel: 'Period',
+          distLabel: 'Semi-Major Axis',
+          modesTitle: 'Operational Modes',
+          iraqPass: 'Iraq Overpass Active — Imaging & Full Subsystems ON',
+          powerThermal: 'Power & Thermal Control',
+          heaterOn: 'Heaters: ON (+3.5W)',
+          heaterOff: 'Heaters: OFF',
+          solarIn: 'Solar Array',
+          loadLabel: 'Load',
+          netLabel: 'Net Power',
+          battLabel: 'Battery SoC',
+          tempExt: 'Skin Temp',
+          tempBatt: 'Battery Temp',
+          adcsTitle: 'ADCS & Live SAT-CAM',
+          manualBtn: 'Manual',
+          autoBtn: 'Nadir Auto',
+          resetAtt: 'Reset Attitude',
+          launchTitle: 'Launch & CubeSat Deployment',
+          targetOrbit: 'Target Orbit',
+          startLaunch: 'Start Launch',
+          resetLaunch: 'Reset',
+          stageLabel: 'Stage',
+          stageReady: 'Ready on Pad',
+          stage1: 'Stage 1: Ascent',
+          stage2: 'Stage 2: Booster Sep',
+          stageDeploy: 'CubeSat Deployment',
+          stageDone: 'Orbit Stabilized',
+          lAlt: 'Altitude',
+          lVel: 'Velocity',
+          lG: 'Accel (G)',
+          anatomyTitle: '3U CubeSat Disassembly',
+          xrayBtn: 'X-Ray View',
+          explodeAll: 'Explode All',
+          assembleAll: 'Assemble All',
+          extractBtn: 'Toggle Part',
+          geoNote: 'GEO is equatorial and 1:1 phase-locked with Earth rotation, staying fixed above its longitude.',
+          generalNote: 'Increasing speed above orbital velocity escapes into space; lowering it decays toward Earth.',
+          thermalNote: 'In eclipse cold, Kapton heaters and MLI insulation keep Li-Ion batteries within safe limits.'
+        }
       };
-      const wingLeft = makeWing(-1);
-      const wingRight = makeWing(1);
-      const bodyPanelFront = new THREE.Mesh(new THREE.BoxGeometry(0.86, 3.15, 0.025), cellMat);
-      bodyPanelFront.position.set(0, 0, 0.51);
-      const bodyPanelBack = new THREE.Mesh(new THREE.BoxGeometry(0.86, 3.15, 0.025), cellMat);
-      bodyPanelBack.position.set(0, 0, -0.51);
-      solarGroup.add(wingLeft, wingRight, bodyPanelFront, bodyPanelBack);
-      anatomyParts[1] = { group: solarGroup, wingLeft, wingRight, bodyPanelFront, bodyPanelBack };
-      anatomyCubeSatGroup.add(solarGroup);
 
-      const epsGroup = new THREE.Group();
-      epsGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.06, 0.82), new THREE.MeshStandardMaterial({ map: greenPcbTex })));
-      [-0.22, -0.07, 0.07, 0.22].forEach(bz => {
-        const c = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.62, 20), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.6 }));
-        c.rotation.z = Math.PI / 2;
-        c.position.set(0, 0.11, bz);
-        epsGroup.add(c);
-      });
-      epsGroup.position.set(0, -1.15, 0);
-      anatomyParts[2] = { group: epsGroup };
-      anatomyCubeSatGroup.add(epsGroup);
+      const MODE_LOADS = {
+        SAFE: 3.4,
+        NOMINAL: 7.2,
+        IMAGING: 14.5,
+        DOWNLINK: 12.8,
+        THERMAL: 9.5
+      };
 
-      const obcGroup = new THREE.Group();
-      obcGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.06, 0.82), new THREE.MeshStandardMaterial({ map: bluePcbTex })));
-      const cpu = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.06, 0.28), new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.9 }));
-      cpu.position.y = 0.06;
-      obcGroup.add(cpu);
-      obcGroup.position.set(0, -0.35, 0);
-      anatomyParts[3] = { group: obcGroup };
-      anatomyCubeSatGroup.add(obcGroup);
+      const partsListEl = document.getElementById('parts-list');
+      CUBE_PARTS.forEach((p) => {
+        state.partExploded[p.id] = false;
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 bg-slate-900/75 px-2.5 py-1.5 rounded-lg border border-slate-800';
 
-      const adcsGroup = new THREE.Group();
-      adcsGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.05, 0.82), new THREE.MeshStandardMaterial({ map: greenPcbTex })));
-      const wMat = new THREE.MeshStandardMaterial({ color: 0x7c3aed, metalness: 0.82 });
-      const wheelX = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.09, 24), wMat);
-      wheelX.rotation.z = Math.PI / 2; wheelX.position.set(-0.22, 0.22, 0);
-      const wheelY = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.09, 24), wMat);
-      wheelY.position.set(0.14, 0.14, 0.16);
-      const wheelZ = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.09, 24), wMat);
-      wheelZ.rotation.x = Math.PI / 2; wheelZ.position.set(0.14, 0.22, -0.18);
-      adcsGroup.add(wheelX, wheelY, wheelZ);
-      adcsGroup.position.set(0, 0.35, 0);
-      anatomyParts[4] = { group: adcsGroup, wheelX, wheelY, wheelZ };
-      anatomyCubeSatGroup.add(adcsGroup);
+        const nameBtn = document.createElement('button');
+        nameBtn.type = 'button';
+        nameBtn.className = 'text-start text-xs font-semibold text-slate-200 hover:text-sky-300 flex-1 truncate';
+        nameBtn.dataset.partNameId = p.id;
+        nameBtn.textContent = p.arName;
+        nameBtn.addEventListener('click', () => {
+          state.selectedPartId = p.id;
+          updatePartDetailCard();
+        });
 
-      const ttcGroup = new THREE.Group();
-      const patch = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.04, 0.42), new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.8 }));
-      patch.position.y = 1.71;
-      ttcGroup.add(patch);
-      anatomyParts[5] = { group: ttcGroup };
-      anatomyCubeSatGroup.add(ttcGroup);
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'text-[11px] px-2 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 font-semibold shrink-0';
+        toggleBtn.dataset.partToggleId = p.id;
+        toggleBtn.textContent = I18N[state.lang].extractBtn;
+        toggleBtn.addEventListener('click', () => {
+          state.partExploded[p.id] = !state.partExploded[p.id];
+          state.selectedPartId = p.id;
+          updatePartDetailCard();
+        });
 
-      const thermalGroup = new THREE.Group();
-      const mli = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.42, 0.88), new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.95 }));
-      mli.position.y = -1.42;
-      thermalGroup.add(mli);
-      anatomyParts[6] = { group: thermalGroup };
-      anatomyCubeSatGroup.add(thermalGroup);
-
-      const payloadGroup = new THREE.Group();
-      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.32, 0.68, 32), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.88 }));
-      barrel.position.y = 1.32;
-      payloadGroup.add(barrel);
-      anatomyParts[7] = { group: payloadGroup };
-      anatomyCubeSatGroup.add(payloadGroup);
-    }
-
-    function stepOrbitAttitude(axis, deltaDeg) {
-      isManualAttitude = true;
-      updateAttitudeModeButton();
-      orbitAttitudeDeg[axis] = normalizeDeg(orbitAttitudeDeg[axis] + deltaDeg);
-      updateAttitudeReadouts();
-    }
-
-    function startHoldRotate(axis, dir) {
-      isManualAttitude = true;
-      updateAttitudeModeButton();
-      holdRotateAxis = axis;
-      holdRotateDir = dir;
-    }
-
-    function stopHoldRotate() {
-      holdRotateAxis = null;
-      holdRotateDir = 0;
-    }
-
-    function resetOrbitAttitude() {
-      orbitAttitudeDeg = { roll: 0, pitch: 0, yaw: 0 };
-      updateAttitudeReadouts();
-    }
-
-    function toggleAttitudeControlMode() {
-      isManualAttitude = !isManualAttitude;
-      if (!isManualAttitude) {
-        orbitAttitudeDeg = { roll: 0, pitch: 0, yaw: 0 };
-        updateAttitudeReadouts();
-      }
-      updateAttitudeModeButton();
-    }
-
-    function updateAttitudeModeButton() {
-      const btn = document.getElementById('btn-attitude-mode');
-      const lbl = document.getElementById('attitude-mode-label');
-      if (isManualAttitude) {
-        btn.className = 'px-2 py-0.5 rounded text-[10px] font-extrabold bg-purple-500/25 border border-purple-400 text-purple-200 transition';
-        lbl.textContent = I18N[currentLang].manualModeLbl;
-      } else {
-        btn.className = 'px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500/25 border border-emerald-400 text-emerald-200 transition';
-        lbl.textContent = I18N[currentLang].nadirModeLbl;
-      }
-    }
-
-    function normalizeDeg(deg) {
-      let d = ((deg + 180) % 360 + 360) % 360 - 180;
-      return Math.round(d);
-    }
-
-    function updateAttitudeReadouts() {
-      document.getElementById('orb-roll-deg').textContent = `${orbitAttitudeDeg.roll}°`;
-      document.getElementById('orb-pitch-deg').textContent = `${orbitAttitudeDeg.pitch}°`;
-      document.getElementById('orb-yaw-deg').textContent = `${orbitAttitudeDeg.yaw}°`;
-    }
-
-    function updateSatellitePiPCamera() {
-      if (!satCamRenderer || !satCamPerspective || !satBodyMeshGroup || currentTab !== 'orbits') return;
-
-      const camWorldPos = new THREE.Vector3();
-      const camForwardDir = new THREE.Vector3(0, 0, 1);
-
-      satBodyMeshGroup.getWorldPosition(camWorldPos);
-      camForwardDir.applyQuaternion(satBodyMeshGroup.getWorldQuaternion(new THREE.Quaternion())).normalize();
-
-      satCamPerspective.position.copy(camWorldPos).addScaledVector(camForwardDir, 0.25);
-      const lookTarget = camWorldPos.clone().addScaledVector(camForwardDir, 8.0);
-      satCamPerspective.lookAt(lookTarget);
-
-      const toEarth = new THREE.Vector3(0, 0, 0).sub(camWorldPos).normalize();
-      const alignToEarth = camForwardDir.dot(toEarth);
-      const labelEl = document.getElementById('sat-cam-target-label');
-
-      if (isOverIraq && alignToEarth > 0.45) {
-        labelEl.textContent = I18N[currentLang].camIraqText;
-        labelEl.className = 'text-[9px] font-extrabold text-center text-amber-300 truncate bg-amber-500/20 rounded px-1.5 py-0.5 border border-amber-400/60';
-      } else if (alignToEarth > 0.35) {
-        labelEl.textContent = I18N[currentLang].camNadirText;
-        labelEl.className = 'text-[9px] font-bold text-center text-emerald-300 truncate bg-slate-900/80 rounded px-1.5 py-0.5 border border-emerald-500/40';
-      } else if (alignToEarth > -0.15) {
-        labelEl.textContent = I18N[currentLang].camHorizonText;
-        labelEl.className = 'text-[9px] font-bold text-center text-sky-300 truncate bg-slate-900/80 rounded px-1.5 py-0.5 border border-sky-500/40';
-      } else {
-        labelEl.textContent = I18N[currentLang].camSpaceText;
-        labelEl.className = 'text-[9px] font-bold text-center text-purple-300 truncate bg-slate-900/80 rounded px-1.5 py-0.5 border border-purple-500/40';
-      }
-
-      const prevVis = satCamLensCone ? satCamLensCone.visible : true;
-      if (satCamLensCone) satCamLensCone.visible = false;
-      satCamRenderer.render(scene, satCamPerspective);
-      if (satCamLensCone) satCamLensCone.visible = prevVis;
-    }
-
-    function getIraqOrbitPhaseAngle() {
-      earthMesh.updateMatrixWorld(true);
-      const iraqWorldPos = new THREE.Vector3();
-      iraqBeaconGroup.getWorldPosition(iraqWorldPos);
-      return Math.atan2(iraqWorldPos.z, iraqWorldPos.x);
-    }
-
-    function toggleHideAllUI() {
-      isUIHidden = !isUIHidden;
-      document.body.classList.toggle('ui-hidden', isUIHidden);
-      const icon = document.getElementById('eye-icon');
-      const label = document.getElementById('eye-label');
-      icon.className = isUIHidden ? 'fa-solid fa-eye-slash text-base text-amber-300' : 'fa-solid fa-eye text-base';
-      label.textContent = isUIHidden ? I18N[currentLang].showUI : I18N[currentLang].hideUI;
-    }
-
-    function toggleLanguage() {
-      currentLang = currentLang === 'ar' ? 'en' : 'ar';
-      document.documentElement.lang = currentLang;
-      document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (I18N[currentLang][key]) el.textContent = I18N[currentLang][key];
+        row.appendChild(nameBtn);
+        row.appendChild(toggleBtn);
+        partsListEl.appendChild(row);
       });
 
-      document.getElementById('lang-label').textContent = I18N[currentLang].langBtn;
-      document.getElementById('eye-label').textContent = isUIHidden ? I18N[currentLang].showUI : I18N[currentLang].hideUI;
-      prevInSunlight = null;
-      prevOverIraq = null;
-      prevAutoHeater = null;
-      updateAttitudeModeButton();
-      renderSubsystemsList();
-      selectSubsystem(selectedSubsystemIndex);
-      selectOrbitPreset(currentOrbitPreset);
-      updateLaunchUI(launchProgress);
-    }
-
-    function jumpSatelliteTo(condition) {
-      if (currentOrbitPreset === 'ALL') selectOrbitPreset('LEO');
-      if (condition === 'SUN') {
-        orbitAngle = 0.0;
-        camera.position.set(6, 6, 13);
-      } else if (condition === 'ECLIPSE') {
-        orbitAngle = Math.PI;
-        camera.position.set(-6, 6, 13);
-      } else if (condition === 'IRAQ') {
-        orbitAngle = getIraqOrbitPhaseAngle();
-        const iraqWorldPos = new THREE.Vector3();
-        iraqBeaconGroup.getWorldPosition(iraqWorldPos);
-        camera.position.set(iraqWorldPos.x * 2.1, iraqWorldPos.y * 2.1 + 3.5, iraqWorldPos.z * 2.1 + 5.5);
-      }
-      prevInSunlight = null;
-      prevOverIraq = null;
-      prevAutoHeater = null;
-    }
-
-    function setSatelliteMode(modeKey) {
-      activeSatelliteMode = modeKey;
-      prevInSunlight = null;
-      prevAutoHeater = null;
-      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-      const btn = document.getElementById(`mode-btn-${modeKey}`);
-      if (btn) btn.classList.add('active');
-    }
-
-    function switchTab(tabName) {
-      currentTab = tabName;
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        btn.classList.add('text-slate-300');
-      });
-      const activeBtn = document.getElementById(`tab-${tabName}`);
-      activeBtn.classList.add('active');
-      activeBtn.classList.remove('text-slate-300');
-
-      document.getElementById('panel-orbits').classList.toggle('hidden', tabName !== 'orbits');
-      document.getElementById('panel-launch').classList.toggle('hidden', tabName !== 'launch');
-      document.getElementById('panel-anatomy').classList.toggle('hidden', tabName !== 'anatomy');
-
-      if (tabName === 'orbits') {
-        earthGroup.visible = true;
-        orbitsGroup.visible = true;
-        shadowConeMesh.visible = true;
-        launchPadGroup.visible = false;
-        launchGroup.visible = false;
-        anatomyCubeSatGroup.visible = false;
-        resetCameraView();
-      } else if (tabName === 'launch') {
-        earthGroup.visible = true;
-        orbitsGroup.visible = false;
-        shadowConeMesh.visible = false;
-        launchPadGroup.visible = true;
-        launchGroup.visible = true;
-        anatomyCubeSatGroup.visible = false;
-        document.getElementById('iraq-overpass-banner').classList.add('hidden');
-        resetLaunchSequence();
-      } else if (tabName === 'anatomy') {
-        earthGroup.visible = false;
-        orbitsGroup.visible = false;
-        shadowConeMesh.visible = false;
-        launchPadGroup.visible = false;
-        launchGroup.visible = false;
-        anatomyCubeSatGroup.visible = true;
-        document.getElementById('iraq-overpass-banner').classList.add('hidden');
-        controls.target.set(0, 0, 0);
-        camera.position.set(-3.4, 1.8, 4.8);
-      }
-    }
-
-    function resetCameraView() {
-      controls.target.set(0, 0, 0);
-      if (currentTab === 'orbits') {
-        if (currentOrbitPreset === 'ALL' || currentAltitudeKm > 15000) camera.position.set(0, 14, 28);
-        else camera.position.set(0, 7.5, 16.5);
-      } else if (currentTab === 'launch') {
-        camera.position.set(2.5, VISUAL_EARTH_RADIUS + 1.5, 8.5);
-      } else if (currentTab === 'anatomy') {
-        camera.position.set(-3.4, 1.8, 4.8);
-      }
-    }
-
-    const ORBIT_TITLES = {
-      ar: {
-        LEO: 'المدار الأرضي المنخفض (LEO)',
-        MEO: 'المدار الأرضي المتوسط (MEO - GPS)',
-        GEO: 'المدار الجغرافي الثابت (GEO)',
-        ALL: 'مقارنة المدارات الثلاثة (LEO • MEO • GEO)'
-      },
-      en: {
-        LEO: 'Low Earth Orbit (LEO)',
-        MEO: 'Medium Earth Orbit (MEO - GPS)',
-        GEO: 'Geostationary Orbit (GEO)',
-        ALL: 'All Orbits Comparison (LEO • MEO • GEO)'
-      }
-    };
-
-    function selectOrbitPreset(preset) {
-      currentOrbitPreset = preset;
-      document.querySelectorAll('.orbit-btn').forEach(b => b.classList.remove('active'));
-      const btn = document.getElementById(`btn-orbit-${preset}`);
-      if (btn) btn.classList.add('active');
-      document.getElementById('hud-orbit-title').textContent = ORBIT_TITLES[currentLang][preset] || ORBIT_TITLES[currentLang].LEO;
-
-      if (preset === 'ALL') {
-        leoRing.visible = true; meoRing.visible = true; geoRing.visible = true; customRing.visible = false;
-        geoRing.rotation.set(0, 0, 0);
-        geoSat.userData.angle = getIraqOrbitPhaseAngle();
-        camera.position.set(0, 15, 29);
-        updateTelemetryDisplay(35786);
-      } else {
-        leoRing.visible = false; meoRing.visible = false; geoRing.visible = false; customRing.visible = true;
-        const altMap = { LEO: 550, MEO: 20200, GEO: 35786 };
-        const alt = altMap[preset] || currentAltitudeKm;
-        customRing.rotation.set(0, 0, preset === 'GEO' ? 0 : (preset === 'MEO' ? THREE.MathUtils.degToRad(35) : THREE.MathUtils.degToRad(24)));
-        document.getElementById('altitude-slider').value = alt;
-        onAltitudeSliderChange(alt, true);
-        if (preset === 'GEO') {
-          customRing.rotation.set(0, 0, 0);
-          orbitAngle = getIraqOrbitPhaseAngle();
-        }
-      }
-      prevInSunlight = null;
-      prevOverIraq = null;
-      prevAutoHeater = null;
-    }
-
-    function onAltitudeSliderChange(val, fromPreset = false) {
-      currentAltitudeKm = parseFloat(val);
-      document.getElementById('slider-alt-display').textContent = `${currentAltitudeKm.toLocaleString()} km`;
-
-      if (!fromPreset) {
-        currentOrbitPreset = 'CUSTOM';
-        document.querySelectorAll('.orbit-btn').forEach(b => b.classList.remove('active'));
-        leoRing.visible = false; meoRing.visible = false; geoRing.visible = false; customRing.visible = true;
-        document.getElementById('hud-orbit-title').textContent = currentLang === 'ar'
-          ? `مدار مخصص (${currentAltitudeKm.toLocaleString()} km)`
-          : `Custom Orbit (${currentAltitudeKm.toLocaleString()} km)`;
+      function updatePartDetailCard() {
+        const part = CUBE_PARTS.find((x) => x.id === state.selectedPartId);
+        const nameEl = document.getElementById('part-detail-name');
+        const descEl = document.getElementById('part-detail-desc');
+        if (!part) return;
+        nameEl.textContent = state.lang === 'ar' ? part.arName : part.enName;
+        descEl.textContent = state.lang === 'ar' ? part.arDesc : part.enDesc;
       }
 
-      const visRadius = altitudeToVisualRadius(currentAltitudeKm);
-      const oldRotX = customRing.rotation.x;
-      const oldRotY = customRing.rotation.y;
-      const oldRotZ = customRing.rotation.z;
-      orbitsGroup.remove(customRing);
-      customRing = createOrbitRingMesh(visRadius, 0x38bdf8, 0.9);
-      customRing.rotation.set(oldRotX, oldRotY, oldRotZ);
-      customRing.add(activeSatGroup);
-      orbitsGroup.add(customRing);
-      updateTelemetryDisplay(currentAltitudeKm);
-    }
-
-    function updateTelemetryDisplay(altKm) {
-      const phys = calculateOrbitalPhysics(altKm);
-      document.getElementById('hud-altitude').textContent = `${Math.round(altKm).toLocaleString()} km`;
-      document.getElementById('hud-velocity').textContent = `${phys.velocityKmS.toFixed(2)} km/s`;
-      document.getElementById('hud-period').textContent = phys.periodMin < 120
-        ? `${phys.periodMin.toFixed(1)} min`
-        : `${phys.periodHrs.toFixed(1)} hrs`;
-    }
-
-    function setSimSpeed(spd, el) {
-      simSpeed = spd;
-      document.querySelectorAll('.sim-speed-btn').forEach(btn => {
-        btn.className = 'sim-speed-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700';
-      });
-      if (el) el.className = 'sim-speed-btn active px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/30 text-sky-300 border border-sky-400';
-    }
-
-    function setLaunchTarget(target) {
-      launchTarget = target;
-      document.querySelectorAll('.launch-target-btn').forEach(btn => {
-        btn.className = 'launch-target-btn py-1.5 rounded-lg text-xs font-extrabold bg-slate-800/80 border border-slate-700 text-slate-300';
-      });
-      document.getElementById(`launch-target-${target}`).className = 'launch-target-btn active py-1.5 rounded-lg text-xs font-extrabold bg-sky-500/25 border border-sky-400 text-sky-300';
-      if (!isLaunching) resetLaunchSequence();
-    }
-
-    function setLaunchSpeed(spd, el) {
-      launchSpeed = spd;
-      document.querySelectorAll('.launch-speed-btn').forEach(btn => {
-        btn.className = 'launch-speed-btn px-2.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-bold';
-      });
-      if (el) el.className = 'launch-speed-btn active px-2.5 py-0.5 rounded bg-amber-500/25 border border-amber-400 text-amber-300 font-bold';
-    }
-
-    function startLaunchSequence() {
-      if (launchProgress >= 1) resetLaunchSequence();
-      isLaunching = true;
-      flameMesh.visible = true;
-      const pill = document.getElementById('launch-status-pill');
-      pill.textContent = currentLang === 'ar' ? 'جاري الإطلاق...' : 'Launching...';
-      pill.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 animate-pulse';
-    }
-
-    function resetLaunchSequence() {
-      isLaunching = false;
-      launchProgress = 0;
-      launchGroup.position.set(0, VISUAL_EARTH_RADIUS + 0.72, 0);
-      launchGroup.rotation.set(0, 0, 0);
-      rocketStage1.visible = true; rocketStage1.position.set(0, 0, 0); rocketStage1.rotation.set(0, 0, 0); flameMesh.visible = false;
-      rocketStage2.visible = true; rocketStage2.position.set(0, 1.02, 0); stage2FlameMesh.visible = false;
-      fairingLeft.visible = true; fairingLeft.position.set(0, 1.6, 0); fairingLeft.rotation.set(0, 0, 0);
-      fairingRight.visible = true; fairingRight.position.set(0, 1.6, 0); fairingRight.rotation.set(0, 0, 0);
-      launchCubeSat.position.set(0, 1.52, 0); launchCubeSat.rotation.set(0, 0, 0);
-      launchCubeSat.userData.leftPanelPivot.rotation.z = -Math.PI / 2;
-      launchCubeSat.userData.rightPanelPivot.rotation.z = Math.PI / 2;
-      updateLaunchUI(0);
-      controls.target.set(0, VISUAL_EARTH_RADIUS + 0.7, 0);
-      camera.position.set(2.5, VISUAL_EARTH_RADIUS + 1.5, 8.5);
-    }
-
-    function updateLaunchUI(progress) {
-      const pct = Math.min(100, Math.round(progress * 100));
-      document.getElementById('launch-progress-bar').style.width = `${pct}%`;
-      document.getElementById('stage-percent-text').textContent = `${pct}%`;
-      const targetAltKm = launchTarget === 'LEO' ? 550 : (launchTarget === 'MEO' ? 20200 : 35786);
-      const currentAlt = Math.round(targetAltKm * Math.pow(progress, 1.15));
-      const targetVel = calculateOrbitalPhysics(targetAltKm).velocityKmS;
-      const currentVel = (targetVel * Math.min(1, progress * 1.15)).toFixed(2);
-      const gForce = progress === 0 ? '1.0 G' : (progress < 0.3 ? (1.4 + progress * 8).toFixed(1) + ' G' : (progress < 0.78 ? '2.8 G' : '0.0 G'));
-
-      document.getElementById('launch-alt-val').textContent = `${currentAlt.toLocaleString()} km`;
-      document.getElementById('launch-vel-val').textContent = `${currentVel} km/s`;
-      document.getElementById('launch-gforce-val').textContent = gForce;
-
-      let activeStage = 0;
-      const ar = currentLang === 'ar';
-      let stageTitle = ar ? 'المرحلة 0: الصاروخ جاهز على منصة الإطلاق الأرضية' : 'Stage 0: Rocket Ready on Launchpad';
-      let payloadState = ar ? 'داخل حاضنة P-POD' : 'Inside P-POD Deployer';
-
-      if (progress > 0 && progress < 0.30) {
-        activeStage = 1;
-        stageTitle = ar ? 'المرحلة 1: اشتعال المحركات وانحناء الجاذبية (Gravity Turn)' : 'Stage 1: Liftoff & Gravity Turn';
-        payloadState = ar ? 'تحت حماية غطاء الحمولة' : 'Inside Fairing';
-      } else if (progress >= 0.30 && progress < 0.55) {
-        activeStage = 2;
-        stageTitle = ar ? 'المرحلة 2: انفصال المرحلة الأولى واشتعال المرحلة الثانية' : 'Stage 2: Stage 1 Separation & Stage 2 Burn';
-        payloadState = ar ? 'صعود نحو المدار' : 'Ascending to Orbit';
-      } else if (progress >= 0.55 && progress < 0.78) {
-        activeStage = 3;
-        stageTitle = ar ? 'المرحلة 3: انفصال نصفي غطاء الحمولة (Fairing Jettison)' : 'Stage 3: Payload Fairing Jettison';
-        payloadState = ar ? 'مكشوف في الفضاء' : 'Exposed in Space';
-      } else if (progress >= 0.78) {
-        activeStage = 4;
-        stageTitle = ar ? `المرحلة 4: نشر الكيوب سات وفتح الألواح في مدار ${launchTarget}!` : `Stage 4: CubeSat Deployed in ${launchTarget}!`;
-        payloadState = ar ? `نشط في مدار ${launchTarget}` : `Active in ${launchTarget}`;
-      }
-
-      document.getElementById('stage-title-text').textContent = stageTitle;
-      document.getElementById('launch-payload-state').textContent = payloadState;
-      for (let i = 0; i <= 4; i++) {
-        const pill = document.getElementById(`step-${i}`);
-        if (i === activeStage) pill.className = 'stage-pill p-1.5 rounded-lg bg-sky-500/25 border border-sky-400 text-sky-300 font-bold';
-        else if (i < activeStage) pill.className = 'stage-pill p-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold';
-        else pill.className = 'stage-pill p-1.5 rounded-lg bg-slate-800/70 border border-slate-700 text-slate-400';
-      }
-    }
-
-    const SUBSYSTEMS_DATA = [
-      { icon: 'fa-cube text-slate-300', ar: { name: '1. الهيكل وقضبان التثبيت', short: 'Al 6061-T6 3U Frame', tag: 'القطعة #1', title: 'الهيكل المعدني وقضبان التثبيت (3U Chassis)', desc: 'إطار قياسي (10×10×34 سم) مصنوع من الألمنيوم الفضائي Al 6061-T6 مع قضبان انزلاق لحاضنة الإطلاق P-POD.', spec: 'Al 6061-T6 (3U)', mass: '320 g / 0 W', role: 'الدعم والحماية' }, en: { name: '1. CNC Structure & Rails', short: 'Al 6061-T6 3U Frame', tag: 'Part #1', title: 'CNC Mechanical Structure (3U Chassis)', desc: 'Standard 3U aluminum frame (10×10×34 cm) with P-POD deployer rails.', spec: 'Al 6061-T6 (3U)', mass: '320 g / 0 W', role: 'Structural Frame' } },
-      { icon: 'fa-solar-panel text-sky-400', ar: { name: '2. الألواح الشمسية (GaAs)', short: 'خلايا ثلاثية الوصلات', tag: 'القطعة #2', title: 'الألواح الشمسية الفضائية (Triple-Junction GaAs)', desc: 'خلايا زرنيخيد الغاليوم ثلاثية الوصلات بكفاءة عالية لتوليد الطاقة في ضوء الشمس.', spec: 'GaAs 29.5% Eff.', mass: '280 g / +19.8 W', role: 'توليد الطاقة' }, en: { name: '2. GaAs Solar Panels', short: 'Triple-Junction Arrays', tag: 'Part #2', title: 'Triple-Junction GaAs Solar Arrays', desc: 'High-efficiency space solar cells generating power in sunlight.', spec: 'GaAs 29.5% Eff.', mass: '280 g / +19.8 W', role: 'Power Generation' } },
-      { icon: 'fa-battery-full text-emerald-400', ar: { name: '3. نظام الطاقة والبطاريات', short: '4 خلايا 18650 Li-Ion', tag: 'القطعة #3', title: 'لوحة الطاقة وبطاريات الليثيوم (EPS)', desc: 'تخزن الطاقة وتغذي القمر أثناء ظل الأرض وتنظم جهود 3.3V و 5V.', spec: '4× 18650 (40 Wh)', mass: '340 g / 0.4 W', role: 'تخزين الطاقة' }, en: { name: '3. EPS & Li-Ion Batteries', short: '4× 18650 Cells', tag: 'Part #3', title: 'EPS & 18650 Battery Pack', desc: 'Stores energy for eclipse and regulates spacecraft power buses.', spec: '4× 18650 (40 Wh)', mass: '340 g / 0.4 W', role: 'Power Storage' } },
-      { icon: 'fa-microchip text-cyan-400', ar: { name: '4. حاسوب القيادة (OBC)', short: 'ARM Cortex-M7', tag: 'القطعة #4', title: 'حاسوب الطيران ومعالجة البيانات (OBC)', desc: 'يدير أوضاع القمر الخمسة ويجدول المهام والتصوير فوق العراق.', spec: 'ARM Cortex-M7', mass: '110 g / 0.8 W', role: 'القيادة والتحكم' }, en: { name: '4. OBC Flight Computer', short: 'ARM Cortex-M7', tag: 'Part #4', title: 'On-Board Flight Computer (OBC)', desc: 'Manages operational modes, telemetry, and mission scheduling.', spec: 'ARM Cortex-M7', mass: '110 g / 0.8 W', role: 'Command & Data' } },
-      { icon: 'fa-compass text-purple-400', ar: { name: '5. نظام التوجيه (ADCS)', short: 'عجلات رد فعل + ملفات', tag: 'القطعة #5', title: 'نظام التحكم بالوضعية والتوجيه (ADCS)', desc: 'يتحكم باتجاه القمر وتدويره لتوجيه الكاميرا أو الألواح الشمسية.', spec: '3× Reaction Wheels', mass: '290 g / 1.8 W', role: 'التوجيه والاستقرار' }, en: { name: '5. 3-Axis ADCS', short: 'Reaction Wheels', tag: 'Part #5', title: 'Attitude Control System (ADCS)', desc: 'Controls 3-axis orientation and pointing accuracy.', spec: '3× Reaction Wheels', mass: '290 g / 1.8 W', role: '3-Axis Pointing' } },
-      { icon: 'fa-tower-broadcast text-rose-400', ar: { name: '6. نظام الاتصالات (TT&C)', short: 'UHF / S-Band', tag: 'القطعة #6', title: 'نظام الاتصالات والهوائيات (TT&C)', desc: 'يرسل الصور والبيانات إلى المحطة الأرضية ويستقبل الأوامر.', spec: 'UHF + S-Band', mass: '165 g / 4.2 W', role: 'البث والاستقبال' }, en: { name: '6. TT&C Communications', short: 'UHF / S-Band', tag: 'Part #6', title: 'Communications Subsystem (TT&C)', desc: 'Downlinks payload data and receives ground commands.', spec: 'UHF + S-Band', mass: '165 g / 4.2 W', role: 'Data Downlink' } },
-      { icon: 'fa-temperature-half text-red-400', ar: { name: '7. التحكم الحراري (TCS)', short: 'عزل MLI + سخانات', tag: 'القطعة #7', title: 'العزل الحراري وسخانات البطاريات (TCS)', desc: 'يحافظ على حرارة البطاريات في ظل الأرض البارد عبر السخانات والعزل MLI.', spec: 'MLI + Heaters', mass: '85 g / 3.5 W', role: 'الحماية الحرارية' }, en: { name: '7. Thermal Control (TCS)', short: 'MLI & Heaters', tag: 'Part #7', title: 'Thermal Control & Heaters', desc: 'Protects batteries during cold eclipse using heaters & MLI.', spec: 'MLI + Heaters', mass: '85 g / 3.5 W', role: 'Thermal Protection' } },
-      { icon: 'fa-camera text-amber-400', ar: { name: '8. الكاميرا العلمية (Payload)', short: 'عدسة بصرية + CMOS', tag: 'القطعة #8', title: 'الحمولة العلمية: كاميرا رصد الأرض', desc: 'تُفعّل عند العبور فوق العراق لالتقاط الصور البيئية والجغرافية.', spec: 'Optical CMOS', mass: '380 g / 7.5 W', role: 'التصوير والرصد' }, en: { name: '8. Optical Payload Camera', short: 'Earth Imaging CMOS', tag: 'Part #8', title: 'Optical Earth Observation Payload', desc: 'Captures high-resolution imagery during orbital passes.', spec: 'Optical CMOS', mass: '380 g / 7.5 W', role: 'Earth Imaging' } }
-    ];
-
-    function renderSubsystemsList() {
-      const container = document.getElementById('subsystems-list-container');
-      container.innerHTML = SUBSYSTEMS_DATA.map((item, idx) => {
-        const d = item[currentLang];
-        const activeCls = idx === selectedSubsystemIndex ? 'active' : '';
-        const isPulled = individualPullStates[idx];
-        const pullBtnLabel = isPulled ? (currentLang === 'ar' ? 'إرجاع' : 'Insert') : (currentLang === 'ar' ? 'إخراج' : 'Pull Out');
-        const pullBtnCls = isPulled ? 'bg-emerald-500/25 text-emerald-300 border-emerald-400' : 'bg-slate-800 hover:bg-amber-500/25 text-amber-300 border-amber-500/40';
-        return `
-          <div onclick="selectSubsystem(${idx})" id="sub-card-${idx}" class="subsystem-card ${activeCls} glass-card rounded-xl p-2 border flex items-center justify-between gap-2 cursor-pointer">
-            <div class="flex items-center gap-2 min-w-0">
-              <div class="w-7 h-7 rounded-lg bg-slate-900/90 flex items-center justify-center shrink-0 border border-slate-700">
-                <i class="fa-solid ${item.icon} text-xs"></i>
-              </div>
-              <div class="truncate">
-                <p class="text-xs font-bold text-white truncate">${d.name}</p>
-                <p class="text-[10px] text-slate-400 truncate">${d.short}</p>
-              </div>
-            </div>
-            <button onclick="event.stopPropagation(); toggleSinglePartPull(${idx})" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold border shrink-0 transition ${pullBtnCls}">
-              ${pullBtnLabel}
-            </button>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function toggleSinglePartPull(idx) {
-      individualPullStates[idx] = !individualPullStates[idx];
-      if (individualPullStates[idx] && idx >= 2 && !isXRayMode) toggleXRayFrame(true);
-      selectSubsystem(idx);
-      renderSubsystemsList();
-    }
-
-    function toggleXRayFrame(forceState = null) {
-      isXRayMode = forceState !== null ? forceState : !isXRayMode;
-      const btn = document.getElementById('btn-xray-toggle');
-      const txt = document.getElementById('xray-btn-text');
-      if (isXRayMode) {
-        btn.className = 'py-1.5 px-2.5 rounded-lg text-xs font-extrabold bg-sky-500/35 text-white border border-sky-400 flex items-center justify-center gap-1.5 transition';
-        txt.textContent = currentLang === 'ar' ? 'إظهار الهيكل' : 'Solid Frame';
-      } else {
-        btn.className = 'py-1.5 px-2.5 rounded-lg text-xs font-extrabold bg-sky-500/20 text-sky-300 border border-sky-400/60 hover:bg-sky-500/35 flex items-center justify-center gap-1.5 transition';
-        txt.textContent = I18N[currentLang].btnXrayFrame;
-      }
-      if (anatomyParts[0] && anatomyParts[0].materials) {
-        anatomyParts[0].materials.forEach(m => { m.opacity = isXRayMode ? 0.22 : 1.0; });
-      }
-    }
-
-    function selectSubsystem(index) {
-      selectedSubsystemIndex = index;
-      document.querySelectorAll('.subsystem-card').forEach((card, i) => card.classList.toggle('active', i === index));
-      const d = SUBSYSTEMS_DATA[index][currentLang];
-      document.getElementById('sub-detail-tag').textContent = d.tag;
-      document.getElementById('sub-detail-eng').textContent = d.spec;
-      document.getElementById('sub-detail-title').textContent = d.title;
-      document.getElementById('sub-detail-desc').textContent = d.desc;
-      document.getElementById('sub-detail-spec').textContent = d.spec;
-      document.getElementById('sub-detail-mass').textContent = d.mass;
-      document.getElementById('sub-detail-role').textContent = d.role;
-    }
-
-    function setGlobalExplodeFactor(val) {
-      targetGlobalExplode = parseFloat(val);
-      document.getElementById('explode-btn-text').textContent = targetGlobalExplode > 0.3
-        ? I18N[currentLang].btnAssembleAll
-        : I18N[currentLang].btnExplodeAll;
-    }
-
-    function toggleExplodedView() {
-      const nextVal = targetGlobalExplode > 0.3 ? 0 : 1;
-      document.getElementById('explode-slider').value = nextVal * 100;
-      setGlobalExplodeFactor(nextVal);
-      if (nextVal === 0) {
-        individualPullStates = [false, false, false, false, false, false, false, false];
-        renderSubsystemsList();
-      }
-    }
-
-    function updateSatelliteLiveSystems(delta) {
-      if (currentTab !== 'orbits') return;
-      scene.updateMatrixWorld(true);
-      const satWorldPos = new THREE.Vector3();
-      if (currentOrbitPreset === 'ALL') leoSat.getWorldPosition(satWorldPos);
-      else activeSatGroup.getWorldPosition(satWorldPos);
-
-      const distFromShadowAxis = Math.sqrt(satWorldPos.y * satWorldPos.y + satWorldPos.z * satWorldPos.z);
-      const shadowBaseR = VISUAL_EARTH_RADIUS * 0.98;
-      const shadowEnterR = shadowBaseR - 0.06;
-      const shadowExitR = shadowBaseR + 0.06;
-
-      if (satWorldPos.x >= -0.05) {
-        isInSunlight = true;
-      } else if (isInSunlight) {
-        isInSunlight = !(distFromShadowAxis < shadowEnterR);
-      } else {
-        isInSunlight = !(distFromShadowAxis < shadowExitR);
-      }
-
-      const iraqWorldPos = new THREE.Vector3();
-      iraqBeaconGroup.getWorldPosition(iraqWorldPos);
-      const angleToIraqDeg = THREE.MathUtils.radToDeg(satWorldPos.clone().normalize().angleTo(iraqWorldPos.clone().normalize()));
-      const iraqEnterDeg = 17.5;
-      const iraqExitDeg = 19.0;
-      const nextOverIraq = (currentOrbitPreset !== 'ALL') && (isOverIraq ? angleToIraqDeg < iraqExitDeg : angleToIraqDeg < iraqEnterDeg);
-      isOverIraq = nextOverIraq;
-
-      if (prevOverIraq !== isOverIraq) {
-        document.getElementById('iraq-overpass-banner').classList.toggle('hidden', !isOverIraq);
-      }
-
-      let solarGenWatts = 0.0;
-      if (isInSunlight) {
-        const sunFacingFactor = 0.85 + 0.15 * Math.max(0, satWorldPos.clone().normalize().x);
-        const pointingBonus = (activeSatelliteMode === 'SAFE') ? 1.0 : 0.94;
-        solarGenWatts = 19.8 * sunFacingFactor * pointingBonus;
-      }
-
-      const targetExtTemp = isInSunlight ? 46.0 : -68.0;
-      extTempC = THREE.MathUtils.lerp(extTempC, targetExtTemp, delta * 0.9);
-
-      const heaterTempThreshold = prevAutoHeater ? 15.2 : 13.8;
-      const autoHeaterActive = (!isInSunlight && intTempC < heaterTempThreshold) || (activeSatelliteMode === 'THERMAL');
-      const heaterWatts = autoHeaterActive ? 3.5 : 0.0;
-
-      const targetIntTemp = autoHeaterActive ? 16.5 : (isInSunlight ? 22.0 : 4.0);
-      intTempC = THREE.MathUtils.lerp(intTempC, targetIntTemp, delta * 0.6);
-
-      let loadWatts = SATELLITE_MODES[activeSatelliteMode].baseWatts + heaterWatts;
-      if (isOverIraq) loadWatts = Math.max(loadWatts, 16.8);
-
-      const netWatts = solarGenWatts - loadWatts;
-      batterySoC = THREE.MathUtils.clamp(batterySoC + netWatts * delta * 0.12, 5.0, 100.0);
-
-      if (satThermalAura) {
-        if (isOverIraq) { satThermalAura.material.color.setHex(0x10b981); satThermalAura.material.opacity = 0.35; }
-        else if (autoHeaterActive) { satThermalAura.material.color.setHex(0xf43f5e); satThermalAura.material.opacity = 0.32; }
-        else if (isInSunlight) { satThermalAura.material.color.setHex(0xfbbf24); satThermalAura.material.opacity = 0.24; }
-        else { satThermalAura.material.color.setHex(0x38bdf8); satThermalAura.material.opacity = 0.18; }
-      }
-
-      if (prevInSunlight !== isInSunlight) {
-        const sunStatusEl = document.getElementById('hud-sun-status');
-        if (isInSunlight) {
-          sunStatusEl.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/25 text-amber-300 border border-amber-400 flex items-center gap-1';
-          sunStatusEl.innerHTML = `<i class="fa-solid fa-sun"></i> <span>${I18N[currentLang].sunlitPill}</span>`;
+      function updateFlightStateBadge() {
+        const t = I18N[state.lang];
+        const badge = document.getElementById('badge-flight-state');
+        if (state.flightStatus === 'escaping') {
+          badge.textContent = t.stateEscaping;
+          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-500/25 text-amber-300';
+        } else if (state.flightStatus === 'crashed') {
+          badge.textContent = t.stateCrashed;
+          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded bg-rose-500/25 text-rose-300';
+        } else if (state.flightStatus === 'falling') {
+          badge.textContent = t.stateFalling;
+          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded bg-orange-500/25 text-orange-300';
         } else {
-          sunStatusEl.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/30 text-indigo-200 border border-indigo-400 flex items-center gap-1';
-          sunStatusEl.innerHTML = `<i class="fa-solid fa-moon"></i> <span>${I18N[currentLang].eclipsePill}</span>`;
+          badge.textContent = t.stateStable;
+          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300';
         }
       }
 
-      document.getElementById('active-mode-watts').textContent = `${loadWatts.toFixed(1)} W`;
-      document.getElementById('val-solar-gen').textContent = `+${solarGenWatts.toFixed(1)} W`;
-      document.getElementById('val-power-cons').textContent = `-${loadWatts.toFixed(1)} W`;
+      function applyLanguage() {
+        const isAr = state.lang === 'ar';
+        const t = I18N[state.lang];
+        document.documentElement.lang = state.lang;
+        document.documentElement.dir = isAr ? 'rtl' : 'ltr';
 
-      const netEl = document.getElementById('val-net-power');
-      netEl.textContent = `${netWatts >= 0 ? '+' : ''}${netWatts.toFixed(1)} W`;
-      netEl.className = `text-xs sm:text-sm font-extrabold mono-num ${netWatts >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        document.getElementById('txt-app-title').textContent = t.appTitle;
+        document.getElementById('btn-lang').textContent = t.langBtn;
+        document.getElementById('btn-eye-label').textContent = state.hudHidden ? t.eyeShow : t.eyeHide;
+        document.getElementById('eye-icon').textContent = state.hudHidden ? '🙈' : '👁️';
 
-      document.getElementById('battery-soc-badge').textContent = `🔋 ${Math.round(batterySoC)}%`;
-      document.getElementById('battery-bar').style.width = `${batterySoC}%`;
+        document.getElementById('tab-orbit').textContent = t.tabOrbit;
+        document.getElementById('tab-launch').textContent = t.tabLaunch;
+        document.getElementById('tab-anatomy').textContent = t.tabAnatomy;
 
-      if (prevInSunlight !== isInSunlight || prevOverIraq !== isOverIraq) {
-        const epsExp = document.getElementById('eps-explanation-text');
-        if (isOverIraq) {
-          epsExp.textContent = currentLang === 'ar'
-            ? `🛰️ عبور فوق العراق: كافة الأنظمة والكاميرا البصرية تعمل بأقصى طاقة (${loadWatts.toFixed(1)} W) لالتقاط الصور.`
-            : `🛰️ Over Iraq: All subsystems & camera active at peak (${loadWatts.toFixed(1)} W).`;
-        } else if (isInSunlight) {
-          epsExp.textContent = currentLang === 'ar'
-            ? `☀️ الشمس ساطعة: الألواح تولّد الطاقة الشمسية وتغذي أنظمة القمر وتشحن البطاريات.`
-            : `☀️ Sunlit: Solar arrays generate power, supply spacecraft loads, and charge batteries.`;
-        } else {
-          epsExp.textContent = currentLang === 'ar'
-            ? `🌑 في ظل الأرض: توليد الألواح 0.0 W؛ القمر يعتمد على بطاريات الليثيوم الداخلية.`
-            : `🌑 Eclipse: Solar input 0.0 W; spacecraft runs on internal Li-Ion batteries.`;
-        }
+        document.getElementById('lbl-quick-jump').textContent = t.quickJump;
+        document.getElementById('btn-jump-sun').textContent = t.jumpSun;
+        document.getElementById('btn-jump-eclipse').textContent = t.jumpEclipse;
+        document.getElementById('btn-jump-iraq').textContent = t.jumpIraq;
+
+        document.getElementById('lbl-orbit-select').textContent = t.orbitSelect;
+        document.querySelector('.orbit-btn[data-orbit="ALL"]').textContent = t.allBtn;
+        document.getElementById('lbl-alt').textContent = t.altLabel;
+        document.getElementById('lbl-manual-speed').textContent = t.manualSpeed;
+        document.getElementById('btn-reset-speed').textContent = t.resetSpeed;
+        document.getElementById('lbl-vel').textContent = t.velLabel;
+        document.getElementById('lbl-period').textContent = t.periodLabel;
+        document.getElementById('lbl-dist').textContent = t.distLabel;
+
+        document.getElementById('lbl-modes').textContent = t.modesTitle;
+        document.getElementById('badge-iraq-pass').textContent = t.iraqPass;
+
+        document.getElementById('lbl-power-thermal').textContent = t.powerThermal;
+        document.getElementById('lbl-solar-in').textContent = t.solarIn;
+        document.getElementById('lbl-load').textContent = t.loadLabel;
+        document.getElementById('lbl-net').textContent = t.netLabel;
+        document.getElementById('lbl-batt').textContent = t.battLabel;
+        document.getElementById('lbl-temp-ext').textContent = t.tempExt;
+        document.getElementById('lbl-temp-batt').textContent = t.tempBatt;
+        document.getElementById('txt-thermal-note').textContent = t.thermalNote;
+
+        document.getElementById('lbl-adcs-title').textContent = t.adcsTitle;
+        document.getElementById('btn-adcs-mode').textContent = state.adcsManual ? t.manualBtn : t.autoBtn;
+        document.getElementById('btn-reset-att').textContent = t.resetAtt;
+
+        document.getElementById('lbl-launch-title').textContent = t.launchTitle;
+        document.getElementById('lbl-target-orbit').textContent = t.targetOrbit;
+        document.getElementById('btn-start-launch').textContent = t.startLaunch;
+        document.getElementById('btn-reset-launch').textContent = t.resetLaunch;
+        document.getElementById('lbl-stage').textContent = t.stageLabel;
+        document.getElementById('lbl-l-alt').textContent = t.lAlt;
+        document.getElementById('lbl-l-vel').textContent = t.lVel;
+        document.getElementById('lbl-l-g').textContent = t.lG;
+
+        document.getElementById('lbl-anatomy-title').textContent = t.anatomyTitle;
+        document.getElementById('btn-xray').textContent = t.xrayBtn;
+        document.getElementById('btn-explode-all').textContent = t.explodeAll;
+        document.getElementById('btn-assemble-all').textContent = t.assembleAll;
+
+        CUBE_PARTS.forEach((p) => {
+          const nameBtn = partsListEl.querySelector(`[data-part-name-id="${p.id}"]`);
+          const toggleBtn = partsListEl.querySelector(`[data-part-toggle-id="${p.id}"]`);
+          if (nameBtn) nameBtn.textContent = isAr ? p.arName : p.enName;
+          if (toggleBtn) toggleBtn.textContent = t.extractBtn;
+        });
+
+        updatePartDetailCard();
+        updateFlightStateBadge();
+        updateOrbitTelemetryUI();
       }
 
-      document.getElementById('val-ext-temp').textContent = `${extTempC >= 0 ? '+' : ''}${extTempC.toFixed(1)} °C`;
-      document.getElementById('val-int-temp').textContent = `+${intTempC.toFixed(1)} °C`;
-
-      if (prevAutoHeater !== autoHeaterActive) {
-        const heaterPill = document.getElementById('heater-status-pill');
-        const thermExp = document.getElementById('thermal-explanation-text');
-        if (autoHeaterActive) {
-          heaterPill.textContent = I18N[currentLang].heatersOn;
-          heaterPill.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/25 text-rose-300 border border-rose-400 shadow-sm shadow-rose-500/30';
-          thermExp.textContent = currentLang === 'ar'
-            ? '🔥 ظل الأرض البارد (-68°C): السخانات الداخلية (+3.5 W) تعمل بثبات مع العزل MLI لتدفئة البطاريات.'
-            : '🔥 Cold Eclipse (-68°C): Internal heaters (+3.5 W) & MLI steadily warm the battery pack.';
-        } else {
-          heaterPill.textContent = I18N[currentLang].heatersOff;
-          heaterPill.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
-          thermExp.textContent = currentLang === 'ar'
-            ? '🛡️ في ضوء الشمس: يعكس العزل MLI الحرارة الزائدة وتبقى البطارية مستقرة.'
-            : '🛡️ Sunlit: Gold MLI reflects excess solar heat while keeping battery temperature stable.';
-        }
+      function applyHudVisibility() {
+        const hide = state.hudHidden;
+        document.getElementById('hud-header').classList.toggle('hidden', hide);
+        document.getElementById('hud-nav').classList.toggle('hidden', hide);
+        document.getElementById('panel-orbit-left').classList.toggle('hidden', hide || state.tab !== 'orbit');
+        document.getElementById('panel-orbit-right').classList.toggle('hidden', hide || state.tab !== 'orbit');
+        document.getElementById('panel-launch').classList.toggle('hidden', hide || state.tab !== 'launch');
+        document.getElementById('panel-anatomy-right').classList.toggle('hidden', hide || state.tab !== 'anatomy');
       }
 
-      prevInSunlight = isInSunlight;
-      prevOverIraq = isOverIraq;
-      prevAutoHeater = autoHeaterActive;
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = Math.min(clock.getDelta(), 0.1);
-
-      const geoAngularSpeed = 0.16 * simSpeed;
-      earthRotationAngle += geoAngularSpeed * delta;
-      if (earthMesh) earthMesh.rotation.set(0, earthRotationAngle, 0);
-      if (cloudsMesh) cloudsMesh.rotation.set(0, earthRotationAngle * 1.15, 0);
-
-      if (holdRotateAxis && holdRotateDir !== 0 && currentTab === 'orbits') {
-        orbitAttitudeDeg[holdRotateAxis] = normalizeDeg(orbitAttitudeDeg[holdRotateAxis] + holdRotateDir * delta * 75);
-        updateAttitudeReadouts();
-      }
-
-      if (currentTab === 'orbits') {
-        if (currentOrbitPreset === 'ALL') {
-          const wGEO = geoAngularSpeed;
-          leoSat.userData.angle = (leoSat.userData.angle || 0) + wGEO * 7.5 * delta;
-          meoSat.userData.angle = (meoSat.userData.angle || 1.2) + wGEO * 2.0 * delta;
-          geoRing.rotation.set(0, 0, 0);
-          geoSat.userData.angle = (geoSat.userData.angle !== undefined ? geoSat.userData.angle : getIraqOrbitPhaseAngle()) - wGEO * delta;
-
-          const rL = altitudeToVisualRadius(550);
-          const rM = altitudeToVisualRadius(20200);
-          const rG = altitudeToVisualRadius(35786);
-
-          leoSat.position.set(Math.cos(leoSat.userData.angle) * rL, 0, Math.sin(leoSat.userData.angle) * rL);
-          meoSat.position.set(Math.cos(meoSat.userData.angle) * rM, 0, Math.sin(meoSat.userData.angle) * rM);
-          geoSat.position.set(Math.cos(geoSat.userData.angle) * rG, 0, Math.sin(geoSat.userData.angle) * rG);
-        } else {
-          const phys = calculateOrbitalPhysics(currentAltitudeKm);
-          const isGeostationary = (currentOrbitPreset === 'GEO') || (Math.abs(currentAltitudeKm - 35786) <= 60 && Math.abs(customRing.rotation.z) < 0.01);
-
-          if (isGeostationary) {
-            customRing.rotation.set(0, 0, 0);
-            orbitAngle -= geoAngularSpeed * delta;
+      function setTab(newTab) {
+        state.tab = newTab;
+        ['orbit', 'launch', 'anatomy'].forEach((k) => {
+          const el = document.getElementById('tab-' + k);
+          if (k === newTab) {
+            el.className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-sky-500 text-slate-950 transition';
           } else {
-            orbitAngle -= geoAngularSpeed * (23.9345 / phys.periodHrs) * delta;
+            el.className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:bg-slate-800 transition';
           }
+        });
 
-          const rVis = altitudeToVisualRadius(currentAltitudeKm);
-          activeSatGroup.position.set(Math.cos(orbitAngle) * rVis, 0, Math.sin(orbitAngle) * rVis);
-          activeSatGroup.rotation.set(0, -orbitAngle - Math.PI / 2, 0);
+        satOrbital.root.visible = (newTab === 'orbit');
+        satAnatomy.root.visible = (newTab === 'anatomy');
+        rocketGroup.visible = (newTab === 'launch');
 
-          if (satBodyMeshGroup) {
-            if (!isManualAttitude) {
-              satBodyMeshGroup.rotation.x = THREE.MathUtils.lerp(satBodyMeshGroup.rotation.x, 0, 0.15);
-              satBodyMeshGroup.rotation.y = THREE.MathUtils.lerp(satBodyMeshGroup.rotation.y, 0, 0.15);
-              satBodyMeshGroup.rotation.z = THREE.MathUtils.lerp(satBodyMeshGroup.rotation.z, 0, 0.15);
-            } else {
-              satBodyMeshGroup.rotation.x = THREE.MathUtils.lerp(satBodyMeshGroup.rotation.x, THREE.MathUtils.degToRad(orbitAttitudeDeg.pitch), 0.18);
-              satBodyMeshGroup.rotation.y = THREE.MathUtils.lerp(satBodyMeshGroup.rotation.y, THREE.MathUtils.degToRad(orbitAttitudeDeg.yaw), 0.18);
-              satBodyMeshGroup.rotation.z = THREE.MathUtils.lerp(satBodyMeshGroup.rotation.z, THREE.MathUtils.degToRad(orbitAttitudeDeg.roll), 0.18);
+        if (newTab === 'anatomy') {
+          camera.position.set(0, 1.4, 5.2);
+          camera.lookAt(0, 0, 0);
+        } else {
+          camera.position.set(0, 7.5, 16.5);
+          camera.lookAt(0, 0, 0);
+        }
+
+        applyHudVisibility();
+      }
+
+      function resetSpeedAndOrbitState() {
+        state.speedMult = 1.0;
+        state.radialOffset = 0;
+        state.flightStatus = 'stable';
+        document.getElementById('slider-speed').value = '1.0';
+        document.getElementById('val-speed-mult').textContent = '1.00x';
+        updateFlightStateBadge();
+        updateOrbitTelemetryUI();
+      }
+
+      function setOrbit(key) {
+        state.orbit = key;
+        document.querySelectorAll('.orbit-btn').forEach((btn) => {
+          const active = btn.dataset.orbit === key;
+          btn.className = 'orbit-btn py-1.5 rounded-lg text-xs font-bold ' +
+            (active ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-300');
+        });
+
+        if (key !== 'ALL' && ORBIT_PRESETS[key]) {
+          state.altKm = ORBIT_PRESETS[key].altKm;
+          document.getElementById('slider-alt').value = state.altKm;
+        }
+
+        resetSpeedAndOrbitState();
+
+        if (key === 'GEO') {
+          state.orbitAngle = state.earthRot + 0.76;
+        }
+
+        updateOrbitTelemetryUI();
+      }
+
+      function setMode(m) {
+        state.mode = m;
+        document.querySelectorAll('.mode-btn').forEach((btn) => {
+          const active = btn.dataset.mode === m;
+          btn.className = (btn.dataset.mode === 'THERMAL' ? 'col-span-2 ' : '') +
+            'mode-btn text-right px-2.5 py-1.5 rounded-lg text-xs font-semibold ' +
+            (active
+              ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/50'
+              : 'bg-slate-800 text-slate-200 hover:bg-slate-700');
+        });
+      }
+
+      function updateOrbitTelemetryUI() {
+        const t = I18N[state.lang];
+        const rKm = Math.max(R_EARTH_KM, R_EARTH_KM + state.altKm + state.radialOffset * 900);
+        const orbitalVelKmS = Math.sqrt(MU / rKm);
+        const currentVelKmS = orbitalVelKmS * state.speedMult;
+        const periodSec = 2 * Math.PI * Math.sqrt(Math.pow(rKm, 3) / MU);
+        const periodMin = periodSec / 60;
+
+        document.getElementById('val-alt').textContent = Math.max(0, Math.round(state.altKm + state.radialOffset * 900)).toLocaleString() + ' km';
+        document.getElementById('val-vel').textContent = currentVelKmS.toFixed(2) + ' km/s';
+        document.getElementById('val-period').textContent = periodMin >= 180
+          ? (periodMin / 60).toFixed(1) + ' h'
+          : periodMin.toFixed(1) + ' min';
+        document.getElementById('val-dist').textContent = Math.round(rKm).toLocaleString() + ' km';
+
+        document.getElementById('txt-orbit-note').textContent =
+          state.orbit === 'GEO' ? t.geoNote : t.generalNote;
+
+        const illBadge = document.getElementById('badge-illumination');
+        illBadge.textContent = state.inSunlight ? t.sunBadge : t.eclipseBadge;
+        illBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-semibold ' +
+          (state.inSunlight ? 'bg-amber-500/20 text-amber-300' : 'bg-indigo-500/25 text-indigo-300');
+
+        document.getElementById('badge-iraq-pass').classList.toggle('hidden', !state.overIraq);
+      }
+
+      document.getElementById('btn-lang').addEventListener('click', () => {
+        state.lang = state.lang === 'ar' ? 'en' : 'ar';
+        applyLanguage();
+      });
+
+      document.getElementById('btn-eye').addEventListener('click', () => {
+        state.hudHidden = !state.hudHidden;
+        applyHudVisibility();
+        applyLanguage();
+      });
+
+      document.getElementById('tab-orbit').addEventListener('click', () => setTab('orbit'));
+      document.getElementById('tab-launch').addEventListener('click', () => setTab('launch'));
+      document.getElementById('tab-anatomy').addEventListener('click', () => setTab('anatomy'));
+
+      document.querySelectorAll('.orbit-btn').forEach((btn) => {
+        btn.addEventListener('click', () => setOrbit(btn.dataset.orbit));
+      });
+
+      document.getElementById('slider-alt').addEventListener('input', (e) => {
+        state.altKm = Number(e.target.value) || 550;
+        state.radialOffset = 0;
+        state.flightStatus = 'stable';
+        updateFlightStateBadge();
+        updateOrbitTelemetryUI();
+      });
+
+      document.getElementById('slider-speed').addEventListener('input', (e) => {
+        state.speedMult = Number(e.target.value) || 1.0;
+        document.getElementById('val-speed-mult').textContent = state.speedMult.toFixed(2) + 'x';
+        if (state.speedMult > 1.35) {
+          state.flightStatus = 'escaping';
+        } else if (state.speedMult < 0.72) {
+          state.flightStatus = 'falling';
+        } else if (state.flightStatus !== 'crashed') {
+          state.flightStatus = 'stable';
+        }
+        updateFlightStateBadge();
+        updateOrbitTelemetryUI();
+      });
+
+      document.getElementById('btn-reset-speed').addEventListener('click', () => {
+        resetSpeedAndOrbitState();
+      });
+
+      document.querySelectorAll('.mode-btn').forEach((btn) => {
+        btn.addEventListener('click', () => setMode(btn.dataset.mode));
+      });
+
+      document.getElementById('btn-jump-sun').addEventListener('click', () => {
+        resetSpeedAndOrbitState();
+        state.orbitAngle = 0.25;
+        state.overIraq = false;
+        setMode('NOMINAL');
+      });
+
+      document.getElementById('btn-jump-eclipse').addEventListener('click', () => {
+        resetSpeedAndOrbitState();
+        state.orbitAngle = Math.PI;
+        state.overIraq = false;
+        setMode('SAFE');
+      });
+
+      document.getElementById('btn-jump-iraq').addEventListener('click', () => {
+        resetSpeedAndOrbitState();
+        state.orbitAngle = state.earthRot + 0.76;
+        state.overIraq = true;
+        setMode('IMAGING');
+      });
+
+      document.getElementById('btn-adcs-mode').addEventListener('click', () => {
+        state.adcsManual = !state.adcsManual;
+        document.getElementById('btn-adcs-mode').textContent =
+          state.adcsManual ? I18N[state.lang].manualBtn : I18N[state.lang].autoBtn;
+      });
+
+      document.querySelectorAll('.att-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.adcsManual = true;
+          document.getElementById('btn-adcs-mode').textContent = I18N[state.lang].manualBtn;
+          const axis = btn.dataset.axis;
+          const delta = Number(btn.dataset.delta) || 0;
+          state.attitude[axis] = (state.attitude[axis] + delta) % 360;
+          document.getElementById('val-' + axis).textContent = state.attitude[axis] + '°';
+          document.getElementById('satcam-angles').textContent =
+            `R:${state.attitude.roll}° P:${state.attitude.pitch}° Y:${state.attitude.yaw}°`;
+        });
+      });
+
+      document.getElementById('btn-reset-att').addEventListener('click', () => {
+        state.attitude = { roll: 0, pitch: 0, yaw: 0 };
+        ['roll', 'pitch', 'yaw'].forEach((a) => {
+          document.getElementById('val-' + a).textContent = '0°';
+        });
+        document.getElementById('satcam-angles').textContent = 'R:0° P:0° Y:0°';
+      });
+
+      document.getElementById('btn-start-launch').addEventListener('click', () => {
+        state.launchOrbit = document.getElementById('launch-orbit-select').value || 'LEO';
+        state.launchProgress = 0;
+        state.launchActive = true;
+        rocketGroup.visible = true;
+      });
+
+      document.getElementById('btn-reset-launch').addEventListener('click', () => {
+        state.launchActive = false;
+        state.launchProgress = 0;
+        rocketGroup.position.set(0, EARTH_RADIUS + 0.4, 0);
+        rocketGroup.rotation.set(0, 0, 0);
+        document.getElementById('val-stage').textContent = I18N[state.lang].stageReady;
+        document.getElementById('val-l-alt').textContent = '0 km';
+        document.getElementById('val-l-vel').textContent = '0.00 km/s';
+        document.getElementById('val-l-g').textContent = '1.0 G';
+      });
+
+      document.getElementById('btn-xray').addEventListener('click', () => {
+        state.xray = !state.xray;
+        satAnatomy.trackedMeshes.forEach(({ mesh, origOpacity, origTransparent }) => {
+          if (state.xray) {
+            mesh.material.transparent = true;
+            mesh.material.opacity = 0.25;
+          } else {
+            mesh.material.transparent = origTransparent;
+            mesh.material.opacity = origOpacity;
+          }
+        });
+      });
+
+      document.getElementById('btn-explode-all').addEventListener('click', () => {
+        CUBE_PARTS.forEach((p) => { state.partExploded[p.id] = true; });
+      });
+
+      document.getElementById('btn-assemble-all').addEventListener('click', () => {
+        CUBE_PARTS.forEach((p) => { state.partExploded[p.id] = false; });
+      });
+
+      const satCamCanvas = document.getElementById('satcam-canvas');
+      const satCamCtx = satCamCanvas ? satCamCanvas.getContext('2d') : null;
+
+      function renderSatCam() {
+        if (!satCamCtx) return;
+        const w = satCamCanvas.width;
+        const h = satCamCanvas.height;
+        satCamCtx.clearRect(0, 0, w, h);
+
+        satCamCtx.fillStyle = '#030712';
+        satCamCtx.fillRect(0, 0, w, h);
+
+        const shiftX = (state.attitude.yaw * 0.6) % 90;
+        const shiftY = (state.attitude.pitch * 0.5) % 45;
+
+        const horizonGrad = satCamCtx.createLinearGradient(0, h * 0.45 + shiftY, 0, h);
+        horizonGrad.addColorStop(0, '#0284c7');
+        horizonGrad.addColorStop(0.3, '#0369a1');
+        horizonGrad.addColorStop(1, '#0f172a');
+        satCamCtx.fillStyle = horizonGrad;
+        satCamCtx.fillRect(-40 + shiftX * 0.3, h * 0.52 + shiftY, w + 80, h);
+
+        satCamCtx.save();
+        satCamCtx.translate(w / 2, h / 2);
+        satCamCtx.rotate((state.attitude.roll * Math.PI) / 180);
+        satCamCtx.strokeStyle = state.overIraq ? '#34d399' : '#38bdf8';
+        satCamCtx.lineWidth = 1.2;
+        satCamCtx.beginPath();
+        satCamCtx.arc(0, 0, 14, 0, Math.PI * 2);
+        satCamCtx.moveTo(-20, 0); satCamCtx.lineTo(-8, 0);
+        satCamCtx.moveTo(8, 0); satCamCtx.lineTo(20, 0);
+        satCamCtx.moveTo(0, -20); satCamCtx.lineTo(0, -8);
+        satCamCtx.moveTo(0, 8); satCamCtx.lineTo(0, 20);
+        satCamCtx.stroke();
+        satCamCtx.restore();
+      }
+
+      let lastTime = performance.now();
+      let uiSyncAccum = 0;
+
+      function animate(now) {
+        requestAnimationFrame(animate);
+        const dt = Math.min((now - lastTime) / 1000, 0.05);
+        lastTime = now;
+
+        const earthAngularSpeed = 0.08;
+        state.earthRot += earthAngularSpeed * dt;
+        earthMesh.rotation.y = state.earthRot;
+
+        const activePreset = ORBIT_PRESETS[state.orbit === 'ALL' ? 'LEO' : state.orbit] || ORBIT_PRESETS.LEO;
+        const baseRadius = state.orbit === 'ALL'
+          ? activePreset.radius
+          : EARTH_RADIUS + Math.min(8.5, Math.max(0.8, (state.altKm / 36000) * 7.2));
+
+        // تأثير السرعة اليدوية: خروج من المدار أو سقوط على الأرض
+        const prevFlightStatus = state.flightStatus;
+        if (state.speedMult > 1.35) {
+          state.radialOffset = Math.min(18, state.radialOffset + (state.speedMult - 1.3) * 3.2 * dt);
+          state.flightStatus = 'escaping';
+        } else if (state.speedMult < 0.72) {
+          const minOffset = -(baseRadius - (EARTH_RADIUS + 0.08));
+          state.radialOffset = Math.max(minOffset, state.radialOffset - (0.76 - state.speedMult) * 3.4 * dt);
+          state.flightStatus = state.radialOffset <= minOffset + 0.02 ? 'crashed' : 'falling';
+        } else if (state.flightStatus !== 'crashed') {
+          state.radialOffset += (0 - state.radialOffset) * Math.min(1, 2.5 * dt);
+          if (Math.abs(state.radialOffset) < 0.02) {
+            state.radialOffset = 0;
+            state.flightStatus = 'stable';
+          }
+        }
+
+        const currentRadius = Math.max(EARTH_RADIUS + 0.06, baseRadius + state.radialOffset);
+
+        if (state.orbit === 'GEO' && Math.abs(state.speedMult - 1.0) < 0.03 && Math.abs(state.radialOffset) < 0.02) {
+          state.orbitAngle += earthAngularSpeed * dt;
+        } else {
+          state.orbitAngle += activePreset.speedFactor * state.speedMult * dt;
+        }
+
+        const localPos = new THREE.Vector3(
+          Math.cos(state.orbitAngle) * currentRadius,
+          0,
+          Math.sin(state.orbitAngle) * currentRadius
+        );
+        const ring = orbitRings[state.orbit === 'ALL' ? 'LEO' : state.orbit];
+        if (ring) {
+          localPos.applyEuler(ring.rotation);
+        }
+        satOrbital.root.position.copy(localPos);
+
+        const inShadow = (localPos.x < -0.5) && (Math.hypot(localPos.y, localPos.z) < EARTH_RADIUS * 1.05);
+        const prevSun = state.inSunlight;
+        state.inSunlight = !inShadow;
+
+        const prevIraq = state.overIraq;
+        const iraqWorldAngle = state.earthRot + 0.76;
+        const angleDiff = Math.atan2(Math.sin(state.orbitAngle - iraqWorldAngle), Math.cos(state.orbitAngle - iraqWorldAngle));
+        state.overIraq = Math.abs(angleDiff) < 0.14;
+
+        if (prevSun !== state.inSunlight || prevIraq !== state.overIraq || prevFlightStatus !== state.flightStatus) {
+          updateFlightStateBadge();
+          updateOrbitTelemetryUI();
+        }
+
+        if (state.adcsManual) {
+          satOrbital.root.rotation.set(
+            THREE.MathUtils.degToRad(state.attitude.pitch),
+            THREE.MathUtils.degToRad(state.attitude.yaw),
+            THREE.MathUtils.degToRad(state.attitude.roll)
+          );
+        } else {
+          satOrbital.root.lookAt(0, 0, 0);
+          satOrbital.root.rotateX(Math.PI / 2);
+        }
+
+        satOrbital.wheels.wheelX.rotation.y += 8 * dt;
+        satOrbital.wheels.wheelY.rotation.y -= 6 * dt;
+        satOrbital.wheels.wheelZ.rotation.y += 5 * dt;
+
+        const solarWatts = state.inSunlight ? 18.5 : 0.0;
+        let loadWatts = MODE_LOADS[state.mode] || 7.2;
+        if (state.overIraq) {
+          loadWatts = Math.max(loadWatts, 14.5);
+        }
+
+        const targetExtTemp = state.inSunlight ? 38.0 : -46.0;
+        state.tempExt += (targetExtTemp - state.tempExt) * 0.4 * dt;
+
+        if (state.tempBatt < 14.0) {
+          state.heaterOn = true;
+        } else if (state.tempBatt > 16.0) {
+          state.heaterOn = false;
+        }
+
+        if (state.heaterOn) {
+          loadWatts += 3.5;
+          state.tempBatt += 2.2 * dt;
+        } else {
+          const targetBatt = state.inSunlight ? 22.0 : 12.5;
+          state.tempBatt += (targetBatt - state.tempBatt) * 0.3 * dt;
+        }
+
+        const netWatts = solarWatts - loadWatts;
+        state.battery = Math.max(5, Math.min(100, state.battery + (netWatts * 0.12) * dt));
+
+        uiSyncAccum += dt;
+        if (uiSyncAccum >= 0.15) {
+          uiSyncAccum = 0;
+          document.getElementById('val-solar-in').textContent = `+${solarWatts.toFixed(1)} W`;
+          document.getElementById('val-load').textContent = `-${loadWatts.toFixed(1)} W`;
+          const netEl = document.getElementById('val-net');
+          netEl.textContent = `${netWatts >= 0 ? '+' : ''}${netWatts.toFixed(1)} W`;
+          netEl.className = 'text-xs font-mono font-bold mt-0.5 ' + (netWatts >= 0 ? 'text-emerald-300' : 'text-rose-300');
+
+          const battPct = Math.round(state.battery);
+          document.getElementById('val-batt').textContent = battPct + '%';
+          document.getElementById('bar-batt').style.width = battPct + '%';
+
+          document.getElementById('val-temp-ext').textContent = `${state.tempExt.toFixed(1)} °C`;
+          document.getElementById('val-temp-batt').textContent = `${state.tempBatt.toFixed(1)} °C`;
+
+          const hBadge = document.getElementById('badge-heater');
+          hBadge.textContent = state.heaterOn ? I18N[state.lang].heaterOn : I18N[state.lang].heaterOff;
+          hBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-semibold ' +
+            (state.heaterOn ? 'bg-rose-500/25 text-rose-300' : 'bg-slate-800 text-slate-300');
+
+          if (state.flightStatus === 'escaping' || state.flightStatus === 'falling') {
+            updateOrbitTelemetryUI();
+          }
+        }
+
+        if (state.tab === 'anatomy') {
+          satAnatomy.root.rotation.y += 0.25 * dt;
+          satAnatomy.wheels.wheelX.rotation.y += 9 * dt;
+          satAnatomy.wheels.wheelY.rotation.y -= 7 * dt;
+          satAnatomy.wheels.wheelZ.rotation.y += 6 * dt;
+
+          CUBE_PARTS.forEach((p) => {
+            const entry = satAnatomy.partsMap[p.id];
+            if (!entry) return;
+            const target = entry.basePos.clone();
+            if (state.partExploded[p.id]) {
+              target.x += p.offset[0];
+              target.y += p.offset[1];
+              target.z += p.offset[2];
             }
-          }
+            entry.group.position.lerp(target, Math.min(1, 7 * dt));
+          });
         }
 
-        updateSatelliteLiveSystems(delta);
-        updateSatellitePiPCamera();
+        if (state.tab === 'launch' && state.launchActive) {
+          state.launchProgress = Math.min(1, state.launchProgress + 0.08 * dt);
+          const p = state.launchProgress;
+          const targetR = (ORBIT_PRESETS[state.launchOrbit] || ORBIT_PRESETS.LEO).radius;
+          const curR = THREE.MathUtils.lerp(EARTH_RADIUS + 0.35, targetR, p);
+          const angle = p * Math.PI * 0.85;
+
+          rocketGroup.position.set(Math.sin(angle) * curR, Math.cos(angle) * curR, 0);
+          rocketGroup.rotation.z = -angle;
+          flame.scale.y = 0.8 + Math.sin(now * 0.04) * 0.25;
+
+          const t = I18N[state.lang];
+          let stageText = t.stage1;
+          if (p >= 0.35 && p < 0.75) stageText = t.stage2;
+          else if (p >= 0.75 && p < 1) stageText = t.stageDeploy;
+          else if (p >= 1) {
+            stageText = t.stageDone;
+            state.launchActive = false;
+          }
+
+          document.getElementById('val-stage').textContent = stageText;
+          document.getElementById('val-l-alt').textContent = Math.round(p * (ORBIT_PRESETS[state.launchOrbit]?.altKm || 550)) + ' km';
+          document.getElementById('val-l-vel').textContent = (p * 7.6).toFixed(2) + ' km/s';
+          document.getElementById('val-l-g').textContent = (p < 0.75 ? (1.2 + Math.sin(p * Math.PI) * 2.4).toFixed(1) : '0.0') + ' G';
+        }
+
+        renderSatCam();
+        renderer.render(scene, camera);
       }
 
-      if (currentTab === 'launch') {
-        const targetAltKm = launchTarget === 'LEO' ? 550 : (launchTarget === 'MEO' ? 20200 : 35786);
-        const targetVisR = altitudeToVisualRadius(targetAltKm);
+      window.addEventListener('resize', () => {
+        const w = window.innerWidth;
+        const h = Math.max(window.innerHeight, 1);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      });
 
-        if (isLaunching && launchProgress < 1.0) {
-          launchProgress = Math.min(1.0, launchProgress + delta * 0.06 * launchSpeed);
-          updateLaunchUI(launchProgress);
-
-          if (launchProgress < 0.30) {
-            flameMesh.visible = true; stage2FlameMesh.visible = false;
-            flameMesh.scale.set(0.9 + Math.random() * 0.3, 0.9 + Math.random() * 0.5, 0.9 + Math.random() * 0.3);
-          } else if (launchProgress < 0.78) {
-            flameMesh.visible = false; stage2FlameMesh.visible = true;
-          } else {
-            flameMesh.visible = false; stage2FlameMesh.visible = false;
-          }
-
-          const curveAngle = Math.pow(launchProgress, 1.15) * (Math.PI / 2);
-          const currentR = THREE.MathUtils.lerp(VISUAL_EARTH_RADIUS + 0.72, targetVisR, Math.pow(launchProgress, 0.88));
-          launchGroup.position.set(Math.sin(curveAngle) * currentR, Math.cos(curveAngle) * currentR, 0);
-          launchGroup.rotation.z = -curveAngle;
-
-          if (launchProgress >= 0.30) {
-            const sepT = (launchProgress - 0.30) / 0.25;
-            rocketStage1.position.y = -sepT * 2.8;
-            rocketStage1.rotation.z = sepT * 0.95;
-            if (sepT > 1) rocketStage1.visible = false;
-          }
-
-          if (launchProgress >= 0.55) {
-            const fairT = (launchProgress - 0.55) / 0.25;
-            fairingLeft.position.x = -fairT * 1.55;
-            fairingRight.position.x = fairT * 1.55;
-            if (fairT > 1) { fairingLeft.visible = false; fairingRight.visible = false; }
-          }
-
-          if (launchProgress >= 0.78) {
-            const deployT = Math.min(1, (launchProgress - 0.78) / 0.22);
-            launchCubeSat.position.y = 1.52 + deployT * 1.35;
-            launchCubeSat.userData.leftPanelPivot.rotation.z = -Math.PI / 2 * (1 - deployT);
-            launchCubeSat.userData.rightPanelPivot.rotation.z = Math.PI / 2 * (1 - deployT);
-          }
-
-          controls.target.lerp(launchGroup.position, 0.14);
-          camera.position.lerp(new THREE.Vector3(launchGroup.position.x + 1.9, launchGroup.position.y + 1.3, launchGroup.position.z + 4.8), 0.09);
-
-          if (launchProgress >= 1.0) {
-            isLaunching = false;
-            rocketStage2.visible = false;
-            const pill = document.getElementById('launch-status-pill');
-            pill.textContent = currentLang === 'ar' ? 'تم النشر بنجاح!' : 'Deployed!';
-            pill.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-sky-500/25 text-sky-300';
-          }
-        }
-      }
-
-      if (currentTab === 'anatomy') {
-        globalExplodeFactor = THREE.MathUtils.lerp(globalExplodeFactor, targetGlobalExplode, 0.1);
-        for (let i = 0; i < 8; i++) {
-          currentPartPullFactors[i] = THREE.MathUtils.lerp(currentPartPullFactors[i], individualPullStates[i] ? 1.0 : 0.0, 0.12);
-        }
-        const f1 = Math.max(globalExplodeFactor, currentPartPullFactors[1]);
-        const f2 = Math.max(globalExplodeFactor, currentPartPullFactors[2]);
-        const f3 = Math.max(globalExplodeFactor, currentPartPullFactors[3]);
-        const f4 = Math.max(globalExplodeFactor, currentPartPullFactors[4]);
-        const f5 = Math.max(globalExplodeFactor, currentPartPullFactors[5]);
-        const f6 = Math.max(globalExplodeFactor, currentPartPullFactors[6]);
-        const f7 = Math.max(globalExplodeFactor, currentPartPullFactors[7]);
-
-        if (anatomyParts[1]) {
-          anatomyParts[1].wingLeft.position.x = -1.12 - f1 * 0.95;
-          anatomyParts[1].wingRight.position.x = 1.12 + f1 * 0.95;
-          anatomyParts[1].bodyPanelFront.position.z = 0.51 + f1 * 1.15;
-          anatomyParts[1].bodyPanelBack.position.z = -0.51 - f1 * 1.15;
-        }
-        if (anatomyParts[2]) anatomyParts[2].group.position.x = -f2 * 1.35;
-        if (anatomyParts[3]) anatomyParts[3].group.position.x = f3 * 1.35;
-        if (anatomyParts[4]) {
-          anatomyParts[4].group.position.x = -f4 * 1.35;
-          anatomyParts[4].wheelX.rotation.x += 1.5 * delta;
-          anatomyParts[4].wheelY.rotation.y += 1.5 * delta;
-          anatomyParts[4].wheelZ.rotation.z += 1.5 * delta;
-        }
-        if (anatomyParts[5]) anatomyParts[5].group.position.y = f5 * 0.95;
-        if (anatomyParts[6]) anatomyParts[6].group.position.y = -f6 * 0.95;
-        if (anatomyParts[7]) anatomyParts[7].group.position.z = f7 * 1.25;
-      }
-
-      controls.update();
-      renderer.render(scene, camera);
-    }
-
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-
-      const pipBox = document.getElementById('sat-cam-container');
-      if (pipBox && satCamRenderer && satCamPerspective) {
-        const w = pipBox.clientWidth || 140;
-        const h = pipBox.clientHeight || 128;
-        satCamPerspective.aspect = w / h;
-        satCamPerspective.updateProjectionMatrix();
-        satCamRenderer.setSize(w, h);
-      }
-    }
+      applyLanguage();
+      applyHudVisibility();
+      updateOrbitTelemetryUI();
+      rocketGroup.position.set(0, EARTH_RADIUS + 0.35, 0);
+      requestAnimationFrame(animate);
+    })();
   </script>
 </body>
 </html>
-```
