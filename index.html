@@ -82,7 +82,7 @@
   </div>
 
   <!-- لوحة المدارات والطاقة والحرارة (يسار) -->
-  <aside id="panel-orbit-left" class="fixed top-28 left-3 bottom-3 w-[335px] max-w-[92vw] z-20 glass rounded-2xl p-3.5 overflow-y-auto custom-scroll space-y-3">
+  <aside id="panel-orbit-left" class="fixed top-28 left-3 bottom-3 w-[330px] max-w-[92vw] z-20 glass rounded-2xl p-3.5 overflow-y-auto custom-scroll space-y-3">
     <!-- أزرار القفز السريع -->
     <div>
       <div id="lbl-quick-jump" class="text-xs font-semibold text-slate-400 mb-1.5">قفز سريع لحالة القمر</div>
@@ -99,7 +99,7 @@
       </div>
     </div>
 
-    <!-- اختيار المدار والارتفاع والتحكم اليدوي بالسرعة -->
+    <!-- اختيار المدار والارتفاع -->
     <div class="bg-slate-900/70 rounded-xl p-3 border border-slate-800 space-y-2.5">
       <div class="flex items-center justify-between">
         <span id="lbl-orbit-select" class="text-xs font-bold text-sky-300">اختيار المدار</span>
@@ -119,23 +119,6 @@
           <span id="val-alt" class="font-mono text-sky-300 font-bold">550 km</span>
         </div>
         <input id="slider-alt" type="range" min="250" max="36000" step="50" value="550" class="w-full" />
-      </div>
-
-      <!-- تحكم يدوي بالسرعة (خروج من المدار أو سقوط على الأرض) -->
-      <div class="bg-slate-950/75 rounded-lg p-2.5 border border-slate-800 space-y-1.5">
-        <div class="flex items-center justify-between text-xs">
-          <span id="lbl-manual-speed" class="font-semibold text-amber-300">التحكم اليدوي بالسرعة</span>
-          <span id="val-speed-mult" class="font-mono font-bold text-sky-300">1.00x</span>
-        </div>
-        <input id="slider-speed" type="range" min="0.2" max="2.4" step="0.05" value="1.0" class="w-full" />
-        <div class="flex items-center justify-between gap-2 pt-0.5">
-          <span id="badge-flight-state" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-            مدار مستقر
-          </span>
-          <button id="btn-reset-speed" type="button" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">
-            ضبط السرعة
-          </button>
-        </div>
       </div>
 
       <div class="grid grid-cols-3 gap-1.5 pt-1 text-center">
@@ -347,6 +330,7 @@
     (function () {
       'use strict';
 
+      // التحقق من توفر Three.js و WebGL
       if (typeof THREE === 'undefined') {
         document.body.innerHTML = '<div style="padding:24px;color:#fff;font-family:sans-serif;">تعذر تحميل مكتبة Three.js. يرجى التحقق من الاتصال بالإنترنت.</div>';
         return;
@@ -363,6 +347,7 @@
       const camera = new THREE.PerspectiveCamera(45, window.innerWidth / Math.max(window.innerHeight, 1), 0.1, 1000);
       camera.position.set(0, 7.5, 16.5);
 
+      // إضاءة المشهد
       const ambientLight = new THREE.AmbientLight(0x94a3b8, 0.55);
       scene.add(ambientLight);
 
@@ -374,6 +359,7 @@
       rimLight.position.set(-18, -10, -14);
       scene.add(rimLight);
 
+      // نجوم الخلفية
       (function createStars() {
         const starGeo = new THREE.BufferGeometry();
         const count = 1400;
@@ -391,7 +377,8 @@
         scene.add(new THREE.Points(starGeo, starMat));
       })();
 
-      const MU = 398600.4418;
+      // الثوابت الفيزيائية والمدارية
+      const MU = 398600.4418; // km^3/s^2
       const R_EARTH_KM = 6371;
       const EARTH_RADIUS = 3.2;
 
@@ -401,16 +388,14 @@
         GEO: { altKm: 35786, radius: 10.2, tiltX: 0, tiltZ: 0, speedFactor: 0.09 }
       };
 
+      // حالة التطبيق
       const state = {
         lang: 'ar',
         hudHidden: false,
-        tab: 'orbit',
+        tab: 'orbit', // 'orbit' | 'launch' | 'anatomy'
         orbit: 'LEO',
         altKm: 550,
-        speedMult: 1.0,
-        radialOffset: 0,
-        flightStatus: 'stable',
-        mode: 'NOMINAL',
+        mode: 'NOMINAL', // 'SAFE' | 'NOMINAL' | 'IMAGING' | 'DOWNLINK' | 'THERMAL'
         adcsManual: false,
         attitude: { roll: 0, pitch: 0, yaw: 0 },
         battery: 84,
@@ -425,10 +410,12 @@
         launchProgress: 0,
         launchOrbit: 'LEO',
         xray: false,
+        explodedAll: false,
         partExploded: {},
         selectedPartId: null
       };
 
+      // نسيج الكرة الأرضية
       function createEarthTexture() {
         const canvas = document.createElement('canvas');
         canvas.width = 1024;
@@ -442,6 +429,7 @@
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, 1024, 512);
 
+        // خطوط طول وعرض خفيفة للمرجعية
         ctx.strokeStyle = 'rgba(186, 230, 253, 0.12)';
         ctx.lineWidth = 1;
         for (let x = 0; x <= 1024; x += 64) {
@@ -451,6 +439,7 @@
           ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1024, y); ctx.stroke();
         }
 
+        // قارات مبسطة (آسيا/الشرق الأوسط/أفريقيا/أوروبا/الأمريكتين)
         ctx.fillStyle = '#2d6a4f';
         ctx.beginPath();
         ctx.ellipse(640, 195, 130, 68, -0.1, 0, Math.PI * 2);
@@ -466,6 +455,7 @@
         ctx.ellipse(250, 220, 95, 110, 0.2, 0, Math.PI * 2);
         ctx.fill();
 
+        // تمييز موقع العراق تقريباً
         const iraqX = ((44.0 + 180) / 360) * 1024;
         const iraqY = ((90 - 33.2) / 180) * 512;
         ctx.fillStyle = '#f59e0b';
@@ -476,6 +466,7 @@
         return new THREE.CanvasTexture(canvas);
       }
 
+      // مجموعة الكرة الأرضية ومخروط الظل والمدارات
       const spaceGroup = new THREE.Group();
       scene.add(spaceGroup);
 
@@ -489,6 +480,7 @@
       );
       spaceGroup.add(earthMesh);
 
+      // غلاف جوي خفيف
       const atmoMesh = new THREE.Mesh(
         new THREE.SphereGeometry(EARTH_RADIUS * 1.025, 40, 40),
         new THREE.MeshBasicMaterial({
@@ -500,6 +492,7 @@
       );
       spaceGroup.add(atmoMesh);
 
+      // مخروط ظل الأرض خلف الكرة باتجاه -X (الشمس في +X)
       const shadowCone = new THREE.Mesh(
         new THREE.CylinderGeometry(EARTH_RADIUS * 0.96, EARTH_RADIUS * 1.15, 22, 32, 1, true),
         new THREE.MeshBasicMaterial({
@@ -514,6 +507,7 @@
       shadowCone.position.set(-11, 0, 0);
       spaceGroup.add(shadowCone);
 
+      // حلقات المدارات الثلاثة
       const orbitRings = {};
       ['LEO', 'MEO', 'GEO'].forEach((key) => {
         const preset = ORBIT_PRESETS[key];
@@ -533,6 +527,7 @@
         orbitRings[key] = line;
       });
 
+      // بناء مجسم 3U CubeSat
       function buildCubeSat(scale = 0.34) {
         const root = new THREE.Group();
         root.scale.setScalar(scale);
@@ -558,6 +553,7 @@
           root.add(group);
         }
 
+        // 1. الهيكل (Structure)
         const structGroup = new THREE.Group();
         const railMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.25 });
         const railGeo = new THREE.BoxGeometry(0.12, 3.0, 0.12);
@@ -574,6 +570,7 @@
         });
         registerPart('structure', structGroup);
 
+        // 2. الطاقة والألواح الشمسية (EPS & Solar Panels)
         const epsGroup = new THREE.Group();
         const panelMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, metalness: 0.5, roughness: 0.3 });
         const leftPanel = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.04, 0.82), panelMat);
@@ -588,6 +585,7 @@
         epsGroup.add(leftPanel, rightPanel, battMesh);
         registerPart('eps', epsGroup);
 
+        // 3. حاسوب القيادة (OBC)
         const obcGroup = new THREE.Group();
         const obcBoard = new THREE.Mesh(
           new THREE.BoxGeometry(0.76, 0.08, 0.76),
@@ -602,6 +600,7 @@
         obcGroup.position.set(0, 0.35, 0);
         registerPart('obc', obcGroup);
 
+        // 4. نظام التوجيه وعجلات رد الفعل (ADCS Reaction Wheels)
         const adcsGroup = new THREE.Group();
         const wheelMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.2 });
         const wheelX = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.1, 24), wheelMat);
@@ -613,6 +612,7 @@
         adcsGroup.position.set(0, -0.15, 0);
         registerPart('adcs', adcsGroup);
 
+        // 5. نظام الاتصالات (Comms)
         const commsGroup = new THREE.Group();
         const antMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.2 });
         const ant1 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.1, 10), antMat);
@@ -624,6 +624,7 @@
         commsGroup.add(ant1, ant2);
         registerPart('comms', commsGroup);
 
+        // 6. الحمولة العلمية / الكاميرا (Payload)
         const payloadGroup = new THREE.Group();
         const lensBarrel = new THREE.Mesh(
           new THREE.CylinderGeometry(0.24, 0.24, 0.45, 24),
@@ -655,6 +656,7 @@
       satAnatomy.root.visible = false;
       scene.add(satAnatomy.root);
 
+      // مجسم الصاروخ لمحاكاة الإطلاق
       const rocketGroup = new THREE.Group();
       const stage1 = new THREE.Mesh(
         new THREE.CylinderGeometry(0.22, 0.22, 1.4, 20),
@@ -681,6 +683,7 @@
       rocketGroup.visible = false;
       spaceGroup.add(rocketGroup);
 
+      // بيانات أجزاء الكيوب سات للتشريح
       const CUBE_PARTS = [
         {
           id: 'structure',
@@ -732,6 +735,7 @@
         }
       ];
 
+      // ترجمة النصوص
       const I18N = {
         ar: {
           appTitle: 'محاكي مدارات الأقمار الصناعية والكيوب سات',
@@ -750,12 +754,6 @@
           sunBadge: 'شمس ساطعة',
           eclipseBadge: 'ظل الأرض',
           altLabel: 'الارتفاع (Altitude)',
-          manualSpeed: 'التحكم اليدوي بالسرعة',
-          resetSpeed: 'ضبط السرعة',
-          stateStable: 'مدار مستقر',
-          stateEscaping: 'خروج من المدار (إفلات)',
-          stateFalling: 'هبوط وسقوط نحو الأرض',
-          stateCrashed: 'سقوط على الأرض',
           velLabel: 'السرعة',
           periodLabel: 'زمن الدورة',
           distLabel: 'نصف القطر',
@@ -793,7 +791,7 @@
           assembleAll: 'تجميع الكل',
           extractBtn: 'إخراج / إرجاع',
           geoNote: 'مدار GEO متزامن استوائياً 1:1 مع دوران الأرض ليبقى ثابتاً فوق نفس نقطة خط الطول.',
-          generalNote: 'زيادة السرعة فوق الحد المداري تخرجه نحو الفضاء، ونقصانها يسبّب سقوطه نحو الأرض.',
+          generalNote: 'تتغير السرعة المدارية وزمن الدورة فيزيائياً بحسب الارتفاع عن مركز الأرض.',
           thermalNote: 'في البرودة والظل تعمل سخانات الكابتون (Kapton Heaters) مع عزل MLI لحماية بطاريات الليثيوم.'
         },
         en: {
@@ -813,12 +811,6 @@
           sunBadge: 'Sunlight',
           eclipseBadge: 'Eclipse',
           altLabel: 'Altitude',
-          manualSpeed: 'Manual Speed Control',
-          resetSpeed: 'Reset Speed',
-          stateStable: 'Stable Orbit',
-          stateEscaping: 'Escaping Orbit',
-          stateFalling: 'Falling to Earth',
-          stateCrashed: 'Crashed on Earth',
           velLabel: 'Velocity',
           periodLabel: 'Period',
           distLabel: 'Semi-Major Axis',
@@ -856,7 +848,7 @@
           assembleAll: 'Assemble All',
           extractBtn: 'Toggle Part',
           geoNote: 'GEO is equatorial and 1:1 phase-locked with Earth rotation, staying fixed above its longitude.',
-          generalNote: 'Increasing speed above orbital limit escapes into space; lowering it falls toward Earth.',
+          generalNote: 'Orbital velocity and period update physically with altitude above Earth.',
           thermalNote: 'In eclipse cold, Kapton heaters and MLI insulation keep Li-Ion batteries within safe limits.'
         }
       };
@@ -869,6 +861,7 @@
         THERMAL: 9.5
       };
 
+      // بناء قائمة الأجزاء في تبويب التشريح
       const partsListEl = document.getElementById('parts-list');
       CUBE_PARTS.forEach((p) => {
         state.partExploded[p.id] = false;
@@ -902,6 +895,7 @@
       });
 
       function updatePartDetailCard() {
+        const t = I18N[state.lang];
         const part = CUBE_PARTS.find((x) => x.id === state.selectedPartId);
         const nameEl = document.getElementById('part-detail-name');
         const descEl = document.getElementById('part-detail-desc');
@@ -910,24 +904,7 @@
         descEl.textContent = state.lang === 'ar' ? part.arDesc : part.enDesc;
       }
 
-      function updateFlightStateBadge() {
-        const t = I18N[state.lang];
-        const badge = document.getElementById('badge-flight-state');
-        if (state.flightStatus === 'escaping') {
-          badge.textContent = t.stateEscaping;
-          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-500/25 text-amber-300';
-        } else if (state.flightStatus === 'crashed') {
-          badge.textContent = t.stateCrashed;
-          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded bg-rose-500/25 text-rose-300';
-        } else if (state.flightStatus === 'falling') {
-          badge.textContent = t.stateFalling;
-          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded bg-orange-500/25 text-orange-300';
-        } else {
-          badge.textContent = t.stateStable;
-          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300';
-        }
-      }
-
+      // تحديث الواجهة واللغة
       function applyLanguage() {
         const isAr = state.lang === 'ar';
         const t = I18N[state.lang];
@@ -951,8 +928,6 @@
         document.getElementById('lbl-orbit-select').textContent = t.orbitSelect;
         document.querySelector('.orbit-btn[data-orbit="ALL"]').textContent = t.allBtn;
         document.getElementById('lbl-alt').textContent = t.altLabel;
-        document.getElementById('lbl-manual-speed').textContent = t.manualSpeed;
-        document.getElementById('btn-reset-speed').textContent = t.resetSpeed;
         document.getElementById('lbl-vel').textContent = t.velLabel;
         document.getElementById('lbl-period').textContent = t.periodLabel;
         document.getElementById('lbl-dist').textContent = t.distLabel;
@@ -995,7 +970,6 @@
         });
 
         updatePartDetailCard();
-        updateFlightStateBadge();
         updateOrbitTelemetryUI();
       }
 
@@ -1011,7 +985,8 @@
 
       function setTab(newTab) {
         state.tab = newTab;
-        ['orbit', 'launch', 'anatomy'].forEach((k) => {
+        const tabs = ['orbit', 'launch', 'anatomy'];
+        tabs.forEach((k) => {
           const el = document.getElementById('tab-' + k);
           if (k === newTab) {
             el.className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-sky-500 text-slate-950 transition';
@@ -1035,16 +1010,6 @@
         applyHudVisibility();
       }
 
-      function resetSpeedAndOrbitState() {
-        state.speedMult = 1.0;
-        state.radialOffset = 0;
-        state.flightStatus = 'stable';
-        document.getElementById('slider-speed').value = '1.0';
-        document.getElementById('val-speed-mult').textContent = '1.00x';
-        updateFlightStateBadge();
-        updateOrbitTelemetryUI();
-      }
-
       function setOrbit(key) {
         state.orbit = key;
         document.querySelectorAll('.orbit-btn').forEach((btn) => {
@@ -1058,8 +1023,7 @@
           document.getElementById('slider-alt').value = state.altKm;
         }
 
-        resetSpeedAndOrbitState();
-
+        // في مدار GEO نثبت القمر متزامناً مع دوران الأرض فوق خط طول العراق تقريباً
         if (key === 'GEO') {
           state.orbitAngle = state.earthRot + 0.76;
         }
@@ -1081,14 +1045,13 @@
 
       function updateOrbitTelemetryUI() {
         const t = I18N[state.lang];
-        const rKm = Math.max(R_EARTH_KM, R_EARTH_KM + state.altKm + state.radialOffset * 900);
-        const orbitalVelKmS = Math.sqrt(MU / rKm);
-        const currentVelKmS = orbitalVelKmS * state.speedMult;
+        const rKm = R_EARTH_KM + Math.max(150, state.altKm);
+        const velKmS = Math.sqrt(MU / rKm);
         const periodSec = 2 * Math.PI * Math.sqrt(Math.pow(rKm, 3) / MU);
         const periodMin = periodSec / 60;
 
-        document.getElementById('val-alt').textContent = Math.max(0, Math.round(state.altKm + state.radialOffset * 900)).toLocaleString() + ' km';
-        document.getElementById('val-vel').textContent = currentVelKmS.toFixed(2) + ' km/s';
+        document.getElementById('val-alt').textContent = state.altKm.toLocaleString() + ' km';
+        document.getElementById('val-vel').textContent = velKmS.toFixed(2) + ' km/s';
         document.getElementById('val-period').textContent = periodMin >= 180
           ? (periodMin / 60).toFixed(1) + ' h'
           : periodMin.toFixed(1) + ' min';
@@ -1105,6 +1068,7 @@
         document.getElementById('badge-iraq-pass').classList.toggle('hidden', !state.overIraq);
       }
 
+      // أحداث الأزرار والمنزلقات
       document.getElementById('btn-lang').addEventListener('click', () => {
         state.lang = state.lang === 'ar' ? 'en' : 'ar';
         applyLanguage();
@@ -1126,55 +1090,33 @@
 
       document.getElementById('slider-alt').addEventListener('input', (e) => {
         state.altKm = Number(e.target.value) || 550;
-        state.radialOffset = 0;
-        state.flightStatus = 'stable';
-        updateFlightStateBadge();
         updateOrbitTelemetryUI();
-      });
-
-      document.getElementById('slider-speed').addEventListener('input', (e) => {
-        state.speedMult = Number(e.target.value) || 1.0;
-        document.getElementById('val-speed-mult').textContent = state.speedMult.toFixed(2) + 'x';
-        if (state.speedMult > 1.35) {
-          state.flightStatus = 'escaping';
-        } else if (state.speedMult < 0.72) {
-          state.flightStatus = 'falling';
-        } else if (state.flightStatus !== 'crashed') {
-          state.flightStatus = 'stable';
-        }
-        updateFlightStateBadge();
-        updateOrbitTelemetryUI();
-      });
-
-      document.getElementById('btn-reset-speed').addEventListener('click', () => {
-        resetSpeedAndOrbitState();
       });
 
       document.querySelectorAll('.mode-btn').forEach((btn) => {
         btn.addEventListener('click', () => setMode(btn.dataset.mode));
       });
 
+      // أزرار القفز السريع
       document.getElementById('btn-jump-sun').addEventListener('click', () => {
-        resetSpeedAndOrbitState();
         state.orbitAngle = 0.25;
         state.overIraq = false;
         setMode('NOMINAL');
       });
 
       document.getElementById('btn-jump-eclipse').addEventListener('click', () => {
-        resetSpeedAndOrbitState();
         state.orbitAngle = Math.PI;
         state.overIraq = false;
         setMode('SAFE');
       });
 
       document.getElementById('btn-jump-iraq').addEventListener('click', () => {
-        resetSpeedAndOrbitState();
         state.orbitAngle = state.earthRot + 0.76;
         state.overIraq = true;
         setMode('IMAGING');
       });
 
+      // التحكم بالوضعية Roll / Pitch / Yaw
       document.getElementById('btn-adcs-mode').addEventListener('click', () => {
         state.adcsManual = !state.adcsManual;
         document.getElementById('btn-adcs-mode').textContent =
@@ -1202,6 +1144,7 @@
         document.getElementById('satcam-angles').textContent = 'R:0° P:0° Y:0°';
       });
 
+      // إطلاق الكيوب سات
       document.getElementById('btn-start-launch').addEventListener('click', () => {
         state.launchOrbit = document.getElementById('launch-orbit-select').value || 'LEO';
         state.launchProgress = 0;
@@ -1220,6 +1163,7 @@
         document.getElementById('val-l-g').textContent = '1.0 G';
       });
 
+      // أزرار التشريح
       document.getElementById('btn-xray').addEventListener('click', () => {
         state.xray = !state.xray;
         satAnatomy.trackedMeshes.forEach(({ mesh, origOpacity, origTransparent }) => {
@@ -1241,6 +1185,7 @@
         CUBE_PARTS.forEach((p) => { state.partExploded[p.id] = false; });
       });
 
+      // رسم كاميرا القمر المصغرة (SAT-CAM)
       const satCamCanvas = document.getElementById('satcam-canvas');
       const satCamCtx = satCamCanvas ? satCamCanvas.getContext('2d') : null;
 
@@ -1250,12 +1195,15 @@
         const h = satCamCanvas.height;
         satCamCtx.clearRect(0, 0, w, h);
 
+        // خلفية الفضاء
         satCamCtx.fillStyle = '#030712';
         satCamCtx.fillRect(0, 0, w, h);
 
+        // إزاحة المشهد حسب Roll / Pitch / Yaw
         const shiftX = (state.attitude.yaw * 0.6) % 90;
         const shiftY = (state.attitude.pitch * 0.5) % 45;
 
+        // أفق الأرض
         const horizonGrad = satCamCtx.createLinearGradient(0, h * 0.45 + shiftY, 0, h);
         horizonGrad.addColorStop(0, '#0284c7');
         horizonGrad.addColorStop(0.3, '#0369a1');
@@ -1263,6 +1211,7 @@
         satCamCtx.fillStyle = horizonGrad;
         satCamCtx.fillRect(-40 + shiftX * 0.3, h * 0.52 + shiftY, w + 80, h);
 
+        // علامة التصويب المركزية
         satCamCtx.save();
         satCamCtx.translate(w / 2, h / 2);
         satCamCtx.rotate((state.attitude.roll * Math.PI) / 180);
@@ -1278,51 +1227,36 @@
         satCamCtx.restore();
       }
 
+      // الحلقة الرئيسية للتحريك
       let lastTime = performance.now();
-      let uiSyncAccum = 0;
 
       function animate(now) {
         requestAnimationFrame(animate);
         const dt = Math.min((now - lastTime) / 1000, 0.05);
         lastTime = now;
 
+        // دوران الأرض حول محورها
         const earthAngularSpeed = 0.08;
         state.earthRot += earthAngularSpeed * dt;
         earthMesh.rotation.y = state.earthRot;
 
+        // حساب موقع القمر في المدار
         const activePreset = ORBIT_PRESETS[state.orbit === 'ALL' ? 'LEO' : state.orbit] || ORBIT_PRESETS.LEO;
-        const baseRadius = state.orbit === 'ALL'
+        const customRadius = state.orbit === 'ALL'
           ? activePreset.radius
           : EARTH_RADIUS + Math.min(8.5, Math.max(0.8, (state.altKm / 36000) * 7.2));
 
-        const prevFlightStatus = state.flightStatus;
-        if (state.speedMult > 1.35) {
-          state.radialOffset = Math.min(18, state.radialOffset + (state.speedMult - 1.3) * 3.2 * dt);
-          state.flightStatus = 'escaping';
-        } else if (state.speedMult < 0.72) {
-          const minOffset = -(baseRadius - (EARTH_RADIUS + 0.08));
-          state.radialOffset = Math.max(minOffset, state.radialOffset - (0.76 - state.speedMult) * 3.4 * dt);
-          state.flightStatus = state.radialOffset <= minOffset + 0.02 ? 'crashed' : 'falling';
-        } else if (state.flightStatus !== 'crashed') {
-          state.radialOffset += (0 - state.radialOffset) * Math.min(1, 2.5 * dt);
-          if (Math.abs(state.radialOffset) < 0.02) {
-            state.radialOffset = 0;
-            state.flightStatus = 'stable';
-          }
-        }
-
-        const currentRadius = Math.max(EARTH_RADIUS + 0.06, baseRadius + state.radialOffset);
-
-        if (state.orbit === 'GEO' && Math.abs(state.speedMult - 1.0) < 0.03 && Math.abs(state.radialOffset) < 0.02) {
+        if (state.orbit === 'GEO') {
+          // تزامن 1:1 مع دوران الأرض ليبقى ثابتاً فوق نفس نقطة خط الطول
           state.orbitAngle += earthAngularSpeed * dt;
         } else {
-          state.orbitAngle += activePreset.speedFactor * state.speedMult * dt;
+          state.orbitAngle += activePreset.speedFactor * dt;
         }
 
         const localPos = new THREE.Vector3(
-          Math.cos(state.orbitAngle) * currentRadius,
+          Math.cos(state.orbitAngle) * customRadius,
           0,
-          Math.sin(state.orbitAngle) * currentRadius
+          Math.sin(state.orbitAngle) * customRadius
         );
         const ring = orbitRings[state.orbit === 'ALL' ? 'LEO' : state.orbit];
         if (ring) {
@@ -1330,20 +1264,22 @@
         }
         satOrbital.root.position.copy(localPos);
 
+        // تحديد ما إذا كان القمر في ظل الأرض (منطقة -X خلف الأرض)
         const inShadow = (localPos.x < -0.5) && (Math.hypot(localPos.y, localPos.z) < EARTH_RADIUS * 1.05);
         const prevSun = state.inSunlight;
         state.inSunlight = !inShadow;
 
+        // رصد العبور فوق العراق بشكل مستقر
         const prevIraq = state.overIraq;
         const iraqWorldAngle = state.earthRot + 0.76;
         const angleDiff = Math.atan2(Math.sin(state.orbitAngle - iraqWorldAngle), Math.cos(state.orbitAngle - iraqWorldAngle));
         state.overIraq = Math.abs(angleDiff) < 0.14;
 
-        if (prevSun !== state.inSunlight || prevIraq !== state.overIraq || prevFlightStatus !== state.flightStatus) {
-          updateFlightStateBadge();
+        if (prevSun !== state.inSunlight || prevIraq !== state.overIraq) {
           updateOrbitTelemetryUI();
         }
 
+        // توجيه القمر في المدار
         if (state.adcsManual) {
           satOrbital.root.rotation.set(
             THREE.MathUtils.degToRad(state.attitude.pitch),
@@ -1355,16 +1291,19 @@
           satOrbital.root.rotateX(Math.PI / 2);
         }
 
+        // دوران عجلات رد الفعل داخلياً
         satOrbital.wheels.wheelX.rotation.y += 8 * dt;
         satOrbital.wheels.wheelY.rotation.y -= 6 * dt;
         satOrbital.wheels.wheelZ.rotation.y += 5 * dt;
 
+        // حساب الطاقة والحرارة
         const solarWatts = state.inSunlight ? 18.5 : 0.0;
         let loadWatts = MODE_LOADS[state.mode] || 7.2;
         if (state.overIraq) {
           loadWatts = Math.max(loadWatts, 14.5);
         }
 
+        // السخانات الحرارية عند البرودة في الظل
         const targetExtTemp = state.inSunlight ? 38.0 : -46.0;
         state.tempExt += (targetExtTemp - state.tempExt) * 0.4 * dt;
 
@@ -1385,32 +1324,25 @@
         const netWatts = solarWatts - loadWatts;
         state.battery = Math.max(5, Math.min(100, state.battery + (netWatts * 0.12) * dt));
 
-        uiSyncAccum += dt;
-        if (uiSyncAccum >= 0.15) {
-          uiSyncAccum = 0;
-          document.getElementById('val-solar-in').textContent = `+${solarWatts.toFixed(1)} W`;
-          document.getElementById('val-load').textContent = `-${loadWatts.toFixed(1)} W`;
-          const netEl = document.getElementById('val-net');
-          netEl.textContent = `${netWatts >= 0 ? '+' : ''}${netWatts.toFixed(1)} W`;
-          netEl.className = 'text-xs font-mono font-bold mt-0.5 ' + (netWatts >= 0 ? 'text-emerald-300' : 'text-rose-300');
+        document.getElementById('val-solar-in').textContent = `+${solarWatts.toFixed(1)} W`;
+        document.getElementById('val-load').textContent = `-${loadWatts.toFixed(1)} W`;
+        const netEl = document.getElementById('val-net');
+        netEl.textContent = `${netWatts >= 0 ? '+' : ''}${netWatts.toFixed(1)} W`;
+        netEl.className = 'text-xs font-mono font-bold mt-0.5 ' + (netWatts >= 0 ? 'text-emerald-300' : 'text-rose-300');
 
-          const battPct = Math.round(state.battery);
-          document.getElementById('val-batt').textContent = battPct + '%';
-          document.getElementById('bar-batt').style.width = battPct + '%';
+        const battPct = Math.round(state.battery);
+        document.getElementById('val-batt').textContent = battPct + '%';
+        document.getElementById('bar-batt').style.width = battPct + '%';
 
-          document.getElementById('val-temp-ext').textContent = `${state.tempExt.toFixed(1)} °C`;
-          document.getElementById('val-temp-batt').textContent = `${state.tempBatt.toFixed(1)} °C`;
+        document.getElementById('val-temp-ext').textContent = `${state.tempExt.toFixed(1)} °C`;
+        document.getElementById('val-temp-batt').textContent = `${state.tempBatt.toFixed(1)} °C`;
 
-          const hBadge = document.getElementById('badge-heater');
-          hBadge.textContent = state.heaterOn ? I18N[state.lang].heaterOn : I18N[state.lang].heaterOff;
-          hBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-semibold ' +
-            (state.heaterOn ? 'bg-rose-500/25 text-rose-300' : 'bg-slate-800 text-slate-300');
+        const hBadge = document.getElementById('badge-heater');
+        hBadge.textContent = state.heaterOn ? I18N[state.lang].heaterOn : I18N[state.lang].heaterOff;
+        hBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-semibold ' +
+          (state.heaterOn ? 'bg-rose-500/25 text-rose-300' : 'bg-slate-800 text-slate-300');
 
-          if (state.flightStatus === 'escaping' || state.flightStatus === 'falling') {
-            updateOrbitTelemetryUI();
-          }
-        }
-
+        // تحديث تفكيك أجزاء التشريح بسلاسة
         if (state.tab === 'anatomy') {
           satAnatomy.root.rotation.y += 0.25 * dt;
           satAnatomy.wheels.wheelX.rotation.y += 9 * dt;
@@ -1430,6 +1362,7 @@
           });
         }
 
+        // تحديث محاكاة الإطلاق
         if (state.tab === 'launch' && state.launchActive) {
           state.launchProgress = Math.min(1, state.launchProgress + 0.08 * dt);
           const p = state.launchProgress;
@@ -1467,7 +1400,8 @@
         camera.updateProjectionMatrix();
         renderer.setSize(w, h);
       });
-      
+
+      // تهيئة أولية
       applyLanguage();
       applyHudVisibility();
       updateOrbitTelemetryUI();
